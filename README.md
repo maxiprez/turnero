@@ -1,69 +1,111 @@
 # Turnero Nail Art
 
-App de turnos hecha en HTML, CSS y JavaScript vanilla, usando Firebase como backend:
+Construí un turnero para tu negocio... y te lo regalo. 🎁
 
-- `index.html`: experiencia pública para que clientas inicien sesión con Google y reserven.
-- `panel/index.html`: panel de administración para configurar días, horarios, servicios, precios y revisar reservas.
+Hace poco tuve que cerrar mi propio emprendimiento y sé que hoy cada ayuda cuenta. Por eso, me puse a programar para vos.
 
-## Firebase usado
+Este proyecto forma parte de una idea simple: crear herramientas reales, útiles y gratuitas para emprendedoras y pequeños negocios que necesitan digitalizarse sin gastar una fortuna.
 
-- Auth con Google para el login de clientas y administradoras.
-- Realtime Database para guardar:
-  - `turnero/usuarios/{uid}`
-  - `turnero/config`
-  - `turnero/servicios/{serviceId}`
-  - `turnero/turnos/{fecha}/{hora}`
+La app incluye:
 
-## Estructura actual en la base
+- Agenda de servicios y horarios.
+- Panel de gestión de clientes y turnos.
+- Login seguro con Google y manejo de precios.
 
-Todo queda guardado dentro de `turnero/`:
+Es solo el inicio: voy a regalar 10 mini apps para emprendedores. 🛠️
 
-- `turnero/usuarios/{uid}`: perfil básico de cada persona que inicia sesión con Google
-- `turnero/config`: nombre del negocio, ventana de reserva y admins
-- `turnero/servicios/{serviceId}`: catálogo de servicios, precios, duración y link de pago
-- `turnero/turnos/{fecha}/{hora}`: turnos otorgados con datos de clienta, servicio, pago y estado
+## Para quién es esta app
 
-## Cómo abrirlo localmente
+Esta app está pensada para negocios que trabajan por agenda, por ejemplo:
 
-Conviene servir la carpeta con un servidor estático, no abrir los HTML con `file://`.
+- Nail art
+- Belleza y estética
+- Peluquerías
+- Lashistas
+- Cosmetología
+- Servicios personalizados por turno
 
-Por ejemplo, desde la raíz del proyecto:
+## Qué resuelve
 
-`python3 -m http.server 8080`
+`Turnero Nail Art` permite que una clienta entre, inicie sesión con Google, elija un servicio, seleccione un día y un horario disponible, complete sus datos y reserve un turno.
 
-Y luego abrir:
+Del otro lado, el negocio puede administrar la agenda, los servicios, los precios y ver la información de las reservas desde un panel.
 
-- `http://127.0.0.1:8080/`
-- `http://127.0.0.1:8080/panel/`
+## Funcionalidades actuales
 
-## Suposición importante
+- Reserva online desde la web pública.
+- Flujo de reserva tipo wizard o asistente multipasos.
+- Login con Google para clientas y administradoras.
+- Registro automático de usuarias en Firebase.
+- Servicios cargados desde base de datos.
+- Horarios y configuración del negocio administrables.
+- Panel para ver turnos otorgados y datos del cliente.
+- Soporte para link de pago por servicio.
 
-Se asumió esta URL de Realtime Database:
+## Stack tecnológico
 
-`https://argentinapps-default-rtdb.firebaseio.com`
+- `HTML5`
+- `CSS3`
+- `JavaScript vanilla`
+- `Firebase Authentication`
+- `Firebase Realtime Database`
 
-Si tu proyecto usa otra URL, cambiála en:
+## Cómo está organizado
 
-`/Users/jonatanariste/develop/Argentinaps/turnero/js/firebase-config.js`
+- [index.html](/Users/jonatanariste/develop/Argentinaps/turnero/index.html): sitio público para reservar turnos
+- [panel/index.html](/Users/jonatanariste/develop/Argentinaps/turnero/panel/index.html): panel administrativo
+- [js/public.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/public.js): lógica del flujo de reserva
+- [js/panel.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/panel.js): lógica del panel
+- [js/shared.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/shared.js): helpers compartidos y acceso a datos
+- [css/styles.css](/Users/jonatanariste/develop/Argentinaps/turnero/css/styles.css): estilos de toda la app
+- [firebase-rules.json](/Users/jonatanariste/develop/Argentinaps/turnero/firebase-rules.json): ejemplo inicial de reglas
 
-## Flujo actual
+## Base de datos
 
-1. La clienta inicia sesión con Google.
-2. Elige servicio, fecha y horario disponible.
-3. Completa nombre, WhatsApp, Instagram y observaciones.
-4. El turno se guarda en `turnero/turnos`.
-5. Si el servicio tiene `paymentLink`, el turno queda en `pendiente_pago` y se abre el link para pagar.
+Todo se guarda dentro del nodo `turnero/` en Firebase Realtime Database:
 
-## Limitación actual
+- `turnero/usuarios/{uid}`: personas que inician sesión con Google
+- `turnero/config`: configuración general del negocio
+- `turnero/servicios/{serviceId}`: servicios, precios, duración y links de pago
+- `turnero/turnos/{fecha}/{hora}`: turnos reservados
 
-Sin webhook de pagos ni backend servidor, el pago no puede validarse automáticamente. Por eso el panel permite cambiar manualmente el estado del turno a:
+Base conectada actualmente:
 
-- `pendiente_pago`
-- `confirmado`
-- `cancelado`
+`https://argentinapps-default-rtdb.firebaseio.com/`
 
-## Seguridad recomendada
+## Cómo levantarlo localmente
 
-Revisá y adaptá las reglas de Realtime Database antes de publicar. Dejé un ejemplo inicial en:
+Desde la carpeta del proyecto:
 
-`/Users/jonatanariste/develop/Argentinaps/turnero/firebase-rules.json`
+```bash
+python3 -m http.server 8765
+```
+
+Después abrí:
+
+- `http://localhost:8765/`
+- `http://localhost:8765/panel/`
+
+## Estado del proyecto
+
+Hoy ya permite:
+
+- Reservar turnos online
+- Cargar y editar servicios desde Firebase
+- Registrar usuarias autenticadas
+- Gestionar agenda y turnos desde panel
+- Ofrecer links de pago según servicio
+
+## Próximos pasos
+
+- Mejorar reglas de seguridad en Firebase
+- Separar más configuraciones por nodos específicos
+- Validar pagos automáticamente
+- Publicar en Firebase Hosting
+- Seguir puliendo la experiencia mobile
+
+## Idea detrás del proyecto
+
+No es solamente un turnero. También es una forma de devolver algo útil a personas que están emprendiendo y necesitan una mano concreta.
+
+Si esta mini app te sirve, entonces ya cumplió su objetivo.
