@@ -71,7 +71,11 @@ Todo se guarda dentro del nodo `turnero/` en Firebase Realtime Database:
 
 Base conectada actualmente:
 
-`https://argentinapps-default-rtdb.firebaseio.com/`
+`https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/`
+
+Completá tus credenciales reales en:
+
+- [js/firebase-config.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/firebase-config.js)
 
 ## Cómo levantarlo localmente
 
