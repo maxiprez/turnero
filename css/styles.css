@@ -482,6 +482,21 @@ select {
   gap: 10px;
 }
 
+.customer-history-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.customer-history-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid var(--stroke);
+}
+
 .booking-meta {
   display: flex;
   flex-wrap: wrap;

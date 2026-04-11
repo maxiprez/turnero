@@ -95,12 +95,70 @@
           </button>
         </section>
 
+        <section class="panel-block">
+          <div class="section-heading">
+            <p class="section-label">Carga manual</p>
+            <h2>Registrar un turno</h2>
+          </div>
+          <form id="manualBookingForm" class="stack">
+            <div class="admin-service-grid">
+              <label class="field">
+                <span>Fecha</span>
+                <input id="manualDate" name="manualDate" type="date" required />
+              </label>
+              <label class="field">
+                <span>Hora</span>
+                <input id="manualTime" name="manualTime" type="time" required />
+              </label>
+              <label class="field">
+                <span>Servicio</span>
+                <select id="manualServiceId" name="manualServiceId" required></select>
+              </label>
+              <label class="field">
+                <span>Estado</span>
+                <select id="manualStatus" name="manualStatus">
+                  <option value="confirmado">Confirmado</option>
+                  <option value="pendiente_pago">Pendiente de pago</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Nombre completo</span>
+                <input id="manualFullName" name="manualFullName" type="text" required />
+              </label>
+              <label class="field">
+                <span>WhatsApp</span>
+                <input id="manualWhatsapp" name="manualWhatsapp" type="text" required />
+              </label>
+              <label class="field">
+                <span>Instagram</span>
+                <input id="manualInstagram" name="manualInstagram" type="text" />
+              </label>
+              <label class="field">
+                <span>Observaciones</span>
+                <input id="manualNotes" name="manualNotes" type="text" />
+              </label>
+            </div>
+            <button id="saveManualBookingButton" class="button button-primary" type="submit">
+              Guardar turno manual
+            </button>
+          </form>
+        </section>
+
         <section class="panel-block panel-wide">
           <div class="section-heading">
             <p class="section-label">Reservas</p>
             <h2>Turnos registrados</h2>
           </div>
           <div id="bookingsList" class="bookings-list"></div>
+        </section>
+
+        <section class="panel-block panel-wide">
+          <div class="section-heading">
+            <p class="section-label">Clientes</p>
+            <h2>Historial de servicios</h2>
+          </div>
+          <div id="customersList" class="bookings-list"></div>
         </section>
       </main>
 

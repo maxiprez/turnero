@@ -195,6 +195,44 @@ export async function createBooking({ date, time, service, user, customer }) {
   return transaction.committed;
 }
 
+export async function createManualBooking({
+  date,
+  time,
+  service,
+  adminUser,
+  customer,
+  status,
+}) {
+  const bookingRef = ref(db, rootPath(`turnos/${date}/${time}`));
+
+  const transaction = await runTransaction(bookingRef, (currentValue) => {
+    if (currentValue) {
+      return;
+    }
+
+    return {
+      date,
+      time,
+      serviceId: service.id,
+      serviceName: service.name,
+      price: Number(service.price || 0),
+      paymentLink: service.paymentLink || "",
+      durationMinutes: Number(service.durationMinutes || 60),
+      status: status || (service.paymentLink ? "pendiente_pago" : "confirmado"),
+      source: "panel",
+      createdAt: new Date().toISOString(),
+      customer,
+      user: {
+        uid: adminUser?.uid || "panel-manual",
+        email: adminUser?.email || "",
+        displayName: adminUser?.displayName || "Carga manual",
+      },
+    };
+  });
+
+  return transaction.committed;
+}
+
 export async function fetchBookings() {
   const snapshot = await get(ref(db, rootPath("turnos")));
   return snapshot.val() || {};
@@ -224,4 +262,36 @@ export function serviceEntries(services = {}) {
 
 export function createServiceId() {
   return `service_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function buildCustomerHistory(bookings = []) {
+  const grouped = new Map();
+
+  bookings.forEach((booking) => {
+    const name = booking.customer?.fullName?.trim() || "Cliente sin nombre";
+    const whatsapp = booking.customer?.whatsapp?.trim() || "";
+    const instagram = booking.customer?.instagram?.trim() || "";
+    const key = (whatsapp || name).toLowerCase();
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        key,
+        fullName: name,
+        whatsapp,
+        instagram,
+        bookings: [],
+      });
+    }
+
+    grouped.get(key).bookings.push(booking);
+  });
+
+  return Array.from(grouped.values())
+    .map((customer) => ({
+      ...customer,
+      bookings: [...customer.bookings].sort((a, b) =>
+        `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`),
+      ),
+    }))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName, "es"));
 }

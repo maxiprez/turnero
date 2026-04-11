@@ -12,11 +12,14 @@ import {
   fetchBookings,
   flattenBookings,
   updateBooking,
+  createManualBooking,
+  buildCustomerHistory,
   upsertUserProfile,
   WEEK_DAYS,
   createServiceId,
   formatCurrency,
   formatDate,
+  toDateInputValue,
 } from "./shared.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -43,7 +46,14 @@ const elements = {
   servicesAdminList: document.querySelector("#servicesAdminList"),
   addServiceButton: document.querySelector("#addServiceButton"),
   saveServicesButton: document.querySelector("#saveServicesButton"),
+  manualBookingForm: document.querySelector("#manualBookingForm"),
+  manualDate: document.querySelector("#manualDate"),
+  manualTime: document.querySelector("#manualTime"),
+  manualServiceId: document.querySelector("#manualServiceId"),
+  manualStatus: document.querySelector("#manualStatus"),
+  saveManualBookingButton: document.querySelector("#saveManualBookingButton"),
   bookingsList: document.querySelector("#bookingsList"),
+  customersList: document.querySelector("#customersList"),
 };
 
 async function boot() {
@@ -97,8 +107,11 @@ function bindEvents() {
     syncServicesFromForm();
     await saveServices(state.config.services);
     renderServicesAdmin();
+    renderManualServiceOptions();
     setGuardMessage("Servicios guardados.");
   });
+
+  elements.manualBookingForm.addEventListener("submit", submitManualBooking);
 }
 
 function observeAuth() {
@@ -119,7 +132,10 @@ function renderEverything() {
   renderGeneralSettings();
   renderSchedule();
   renderServicesAdmin();
+  renderManualServiceOptions();
+  renderManualBookingDefaults();
   renderBookings();
+  renderCustomers();
 }
 
 function renderAuth() {
@@ -263,6 +279,29 @@ function renderServicesAdmin() {
     .join("");
 }
 
+function renderManualServiceOptions() {
+  const services = Object.entries(state.config.services || {}).filter(
+    ([, service]) => service.active !== false,
+  );
+
+  elements.manualServiceId.innerHTML = services
+    .map(
+      ([id, service]) =>
+        `<option value="${id}">${service.name} · ${formatCurrency(service.price)}</option>`,
+    )
+    .join("");
+}
+
+function renderManualBookingDefaults() {
+  if (!elements.manualDate.value) {
+    elements.manualDate.value = toDateInputValue(new Date());
+  }
+
+  if (!elements.manualTime.value) {
+    elements.manualTime.value = "10:00";
+  }
+}
+
 function syncServicesFromForm() {
   const nextServices = {};
 
@@ -331,6 +370,95 @@ function renderBookings() {
       setGuardMessage("Estado del turno actualizado.");
     });
   });
+}
+
+function renderCustomers() {
+  const customers = buildCustomerHistory(state.bookings);
+
+  if (!customers.length) {
+    elements.customersList.innerHTML = "<p>Todavía no hay clientas con historial.</p>";
+    return;
+  }
+
+  elements.customersList.innerHTML = customers
+    .map((customer) => {
+      const latest = customer.bookings[0];
+      const history = customer.bookings
+        .slice(0, 6)
+        .map(
+          (booking) => `
+            <div class="customer-history-item">
+              <span>${formatDate(booking.date)} · ${booking.time}</span>
+              <strong>${booking.serviceName}</strong>
+              <span>${formatCurrency(booking.price)}</span>
+            </div>
+          `,
+        )
+        .join("");
+
+      return `
+        <article class="booking-card">
+          <div class="booking-meta">
+            <span class="tag">${customer.bookings.length} turno(s)</span>
+            <span class="tag">${latest ? `Último: ${formatDate(latest.date)}` : "Sin actividad"}</span>
+          </div>
+          <p><strong>${customer.fullName}</strong></p>
+          <p><strong>WhatsApp:</strong> ${customer.whatsapp || "-"}</p>
+          <p><strong>Instagram:</strong> ${customer.instagram || "-"}</p>
+          <div class="customer-history-list">${history}</div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function submitManualBooking(event) {
+  event.preventDefault();
+
+  const serviceId = elements.manualServiceId.value;
+  const service = Object.entries(state.config.services || {})
+    .map(([id, current]) => ({ id, ...current }))
+    .find((item) => item.id === serviceId);
+
+  if (!service) {
+    setGuardMessage("Elegí un servicio válido para cargar el turno.", true);
+    return;
+  }
+
+  const formData = new FormData(elements.manualBookingForm);
+  elements.saveManualBookingButton.disabled = true;
+
+  try {
+    const committed = await createManualBooking({
+      date: String(formData.get("manualDate") || ""),
+      time: String(formData.get("manualTime") || "").slice(0, 5),
+      service,
+      adminUser: state.user,
+      status: String(formData.get("manualStatus") || "confirmado"),
+      customer: {
+        fullName: String(formData.get("manualFullName") || "").trim(),
+        whatsapp: String(formData.get("manualWhatsapp") || "").trim(),
+        instagram: String(formData.get("manualInstagram") || "").trim(),
+        notes: String(formData.get("manualNotes") || "").trim(),
+      },
+    });
+
+    if (!committed) {
+      setGuardMessage("Ese horario ya está ocupado. Elegí otro.", true);
+      return;
+    }
+
+    elements.manualBookingForm.reset();
+    renderManualBookingDefaults();
+    state.bookings = flattenBookings(await fetchBookings());
+    renderBookings();
+    renderCustomers();
+    setGuardMessage("Turno manual guardado.");
+  } catch (error) {
+    setGuardMessage(`No se pudo guardar el turno manual: ${error.message}`, true);
+  } finally {
+    elements.saveManualBookingButton.disabled = false;
+  }
 }
 
 function setGuardMessage(message, isError = false) {
