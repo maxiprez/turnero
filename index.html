@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Turnero Nail Art</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body class="theme-public">
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Turnos online</p>
+          <h1 id="businessName">Nail Art Studio</h1>
+          <p class="hero-text">
+            Reservá tu turno en pocos pasos. Elegís el servicio, iniciás sesión
+            con Google y apartás tu horario.
+          </p>
+        </div>
+        <div class="hero-card auth-card">
+          <div id="authLoggedOut" class="stack">
+            <p class="section-label">Acceso</p>
+            <h2>Ingresá con Gmail para reservar</h2>
+            <button id="loginButton" class="button button-primary" type="button">
+              Continuar con Google
+            </button>
+          </div>
+
+          <div id="authLoggedIn" class="stack hidden">
+            <p class="section-label">Sesión activa</p>
+            <div class="user-inline">
+              <img id="userAvatar" class="avatar" alt="Avatar" />
+              <div>
+                <strong id="userName"></strong>
+                <p id="userEmail" class="muted"></p>
+              </div>
+            </div>
+            <button id="logoutButton" class="button button-secondary" type="button">
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout-grid">
+        <section class="panel-block panel-wide wizard-shell">
+          <div class="wizard-header">
+            <div class="section-heading">
+              <p class="section-label">Reserva guiada</p>
+              <h2>Pedí tu turno paso a paso</h2>
+            </div>
+            <div class="wizard-progress" aria-label="Progreso de la reserva">
+              <div class="wizard-step is-active" data-step-indicator="1">
+                <span class="wizard-step-number">1</span>
+                <span class="wizard-step-copy">
+                  <strong>Servicio</strong>
+                  <small>Elegí qué querés hacerte</small>
+                </span>
+              </div>
+              <div class="wizard-step" data-step-indicator="2">
+                <span class="wizard-step-number">2</span>
+                <span class="wizard-step-copy">
+                  <strong>Fecha</strong>
+                  <small>Buscá un día disponible</small>
+                </span>
+              </div>
+              <div class="wizard-step" data-step-indicator="3">
+                <span class="wizard-step-number">3</span>
+                <span class="wizard-step-copy">
+                  <strong>Horario</strong>
+                  <small>Elegí tu turno de una hora</small>
+                </span>
+              </div>
+              <div class="wizard-step" data-step-indicator="4">
+                <span class="wizard-step-number">4</span>
+                <span class="wizard-step-copy">
+                  <strong>Datos</strong>
+                  <small>Confirmá tu reserva</small>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div id="wizardSummary" class="wizard-summary">
+            <span class="tag" id="summaryChipService">Servicio pendiente</span>
+            <span class="tag" id="summaryChipDate">Fecha pendiente</span>
+            <span class="tag" id="summaryChipTime">Horario pendiente</span>
+          </div>
+        </section>
+
+        <section class="panel-block wizard-panel" data-step-panel="1">
+          <div class="section-heading">
+            <p class="section-label">Paso 1</p>
+            <h2>Elegí un servicio</h2>
+          </div>
+          <div id="servicesGrid" class="services-grid"></div>
+          <div class="wizard-actions">
+            <button id="toStep2Button" class="button button-primary" type="button">
+              Seguir con la fecha
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-block wizard-panel hidden" data-step-panel="2">
+          <div class="section-heading">
+            <p class="section-label">Paso 2</p>
+            <h2>Seleccioná un día</h2>
+          </div>
+          <div id="dateChips" class="chip-grid"></div>
+          <div class="wizard-actions">
+            <button id="backToStep1Button" class="button button-secondary" type="button">
+              Volver
+            </button>
+            <button id="toStep3Button" class="button button-primary" type="button">
+              Seguir con el horario
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-block wizard-panel hidden" data-step-panel="3">
+          <div class="section-heading">
+            <p class="section-label">Paso 3</p>
+            <h2>Elegí tu horario</h2>
+          </div>
+          <div id="slotsGrid" class="slots-grid"></div>
+          <div class="wizard-actions">
+            <button id="backToStep2Button" class="button button-secondary" type="button">
+              Volver
+            </button>
+            <button id="toStep4Button" class="button button-primary" type="button">
+              Completar mis datos
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-block wizard-panel hidden" data-step-panel="4">
+          <div class="section-heading">
+            <p class="section-label">Paso 4</p>
+            <h2>Completá tus datos</h2>
+          </div>
+
+          <form id="wizardBookingForm" class="stack">
+            <label class="field">
+              <span>Nombre completo</span>
+              <input id="fullName" name="fullName" type="text" required />
+            </label>
+
+            <label class="field">
+              <span>WhatsApp</span>
+              <input id="whatsapp" name="whatsapp" type="text" required />
+            </label>
+
+            <label class="field">
+              <span>Instagram</span>
+              <input id="instagram" name="instagram" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Observaciones</span>
+              <textarea id="notes" name="notes" rows="4"></textarea>
+            </label>
+
+            <div class="modal-summary">
+              <p><strong>Servicio:</strong> <span id="summaryService"></span></p>
+              <p><strong>Fecha:</strong> <span id="summaryDate"></span></p>
+              <p><strong>Hora:</strong> <span id="summaryTime"></span></p>
+              <p><strong>Precio:</strong> <span id="summaryPrice"></span></p>
+            </div>
+
+            <div class="wizard-actions">
+              <button id="backToStep3Button" class="button button-secondary" type="button">
+                Volver
+              </button>
+              <button id="bookingSubmitButton" class="button button-primary" type="submit">
+                Confirmar turno
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel-block wizard-panel hidden" data-step-panel="5">
+          <div class="wizard-success">
+            <div class="wizard-success-icon">✓</div>
+            <p class="section-label">Reserva confirmada</p>
+            <h2>Tu turno quedó agendado</h2>
+            <p id="successMessage" class="hero-text">
+              Guardamos tu reserva correctamente.
+            </p>
+
+            <div class="modal-summary">
+              <p><strong>Servicio:</strong> <span id="successService"></span></p>
+              <p><strong>Fecha:</strong> <span id="successDate"></span></p>
+              <p><strong>Hora:</strong> <span id="successTime"></span></p>
+              <p><strong>Estado:</strong> <span id="successStatus"></span></p>
+            </div>
+
+            <div class="wizard-actions">
+              <button id="restartWizardButton" class="button button-primary" type="button">
+                Reservar otro turno
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-block info-strip panel-wide">
+          <p id="statusMessage" class="status-message">
+            Cargando disponibilidad...
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./js/public.js"></script>
+  </body>
+</html>

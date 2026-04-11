@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "turnero": {
+      "config": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      },
+      "turnos": {
+        ".read": "auth != null",
+        "$date": {
+          "$time": {
+            ".write": "auth != null"
+          }
+        }
+      }
+    }
+  }
+}

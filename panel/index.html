@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel de turnos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/styles.css" />
+  </head>
+  <body class="theme-panel">
+    <div class="page-shell">
+      <header class="panel-topbar">
+        <div>
+          <p class="eyebrow">Administración</p>
+          <h1>Panel de turnos</h1>
+        </div>
+
+        <div class="topbar-actions">
+          <div id="panelUserInfo" class="user-inline hidden"></div>
+          <button id="panelLoginButton" class="button button-primary" type="button">
+            Entrar con Google
+          </button>
+          <button id="panelLogoutButton" class="button button-secondary hidden" type="button">
+            Cerrar sesión
+          </button>
+        </div>
+      </header>
+
+      <main id="panelContent" class="layout-grid hidden">
+        <section class="panel-block panel-wide">
+          <p id="panelNotice" class="status-message">
+            Configurá tu agenda, servicios y estados de turnos desde acá.
+          </p>
+        </section>
+
+        <section class="panel-block">
+          <div class="section-heading">
+            <p class="section-label">Configuración</p>
+            <h2>Datos generales</h2>
+          </div>
+
+          <form id="settingsForm" class="stack">
+            <label class="field">
+              <span>Nombre del negocio</span>
+              <input id="settingsBusinessName" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Ventana de reserva en días</span>
+              <input id="settingsBookingWindow" type="number" min="1" max="90" />
+            </label>
+
+            <label class="field">
+              <span>Emails administradores</span>
+              <textarea
+                id="settingsAdminEmails"
+                rows="3"
+                placeholder="uno@gmail.com, otra@gmail.com"
+              ></textarea>
+            </label>
+
+            <button class="button button-primary" type="submit">
+              Guardar configuración
+            </button>
+          </form>
+        </section>
+
+        <section class="panel-block">
+          <div class="section-heading">
+            <p class="section-label">Disponibilidad</p>
+            <h2>Días y horarios</h2>
+          </div>
+          <form id="scheduleForm" class="stack"></form>
+          <button id="saveScheduleButton" class="button button-primary" type="button">
+            Guardar agenda
+          </button>
+        </section>
+
+        <section class="panel-block">
+          <div class="section-heading">
+            <p class="section-label">Servicios</p>
+            <h2>Catálogo y precios</h2>
+          </div>
+          <div id="servicesAdminList" class="stack"></div>
+          <button id="addServiceButton" class="button button-secondary" type="button">
+            Agregar servicio
+          </button>
+          <button id="saveServicesButton" class="button button-primary" type="button">
+            Guardar servicios
+          </button>
+        </section>
+
+        <section class="panel-block panel-wide">
+          <div class="section-heading">
+            <p class="section-label">Reservas</p>
+            <h2>Turnos registrados</h2>
+          </div>
+          <div id="bookingsList" class="bookings-list"></div>
+        </section>
+      </main>
+
+      <section id="panelGuard" class="panel-block">
+        <p id="panelGuardMessage" class="status-message">
+          Iniciá sesión con una cuenta de Google para administrar el turnero.
+        </p>
+      </section>
+    </div>
+
+    <script type="module" src="../js/panel.js"></script>
+  </body>
+</html>
