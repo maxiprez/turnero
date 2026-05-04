@@ -19,7 +19,7 @@ export const WEEK_DAYS = [
 ];
 
 export const DEFAULT_CONFIG = {
-  businessName: "Nail Art Studio",
+  businessName: "Salasaurio",
   bookingWindowDays: 21,
   adminEmails: [],
   weeklySchedule: {
@@ -35,14 +35,14 @@ export const DEFAULT_CONFIG = {
 
 export const DEFAULT_SERVICES = {
   service_1: {
-    name: "Kapping gel",
+    name: "Sala 1",
     price: 18000,
     durationMinutes: 60,
     paymentLink: "",
     active: true,
   },
   service_2: {
-    name: "Esmaltado semipermanente",
+    name: "Sala 2",
     price: 15000,
     durationMinutes: 60,
     paymentLink: "",
@@ -88,6 +88,71 @@ export function generateHourlySlots(start, end) {
   }
 
   return slots;
+}
+
+export function generateDurationSlots(start, end, durationMinutes, dayBookings, serviceId) {
+  const [startHour] = start.split(":").map(Number);
+  const [endHour] = end.split(":").map(Number);
+  const blocks = Math.floor(durationMinutes / 60);
+  const slots = [];
+
+ 
+
+  for (let hour = startHour; hour <= endHour - blocks; hour += 1) {
+    const time = `${String(hour).padStart(2, "0")}:00`;
+    let available = true;
+
+    // Revisar cada bloque de una hora que compone la reserva total
+    for (let i = 0; i < blocks; i += 1) {
+      const currentHour = hour + i;
+      const slotTime = `${String(currentHour).padStart(2, "0")}:00`;
+      const slotData = dayBookings[slotTime];
+
+       console.log(`Revisando ${slotTime}:`, slotData);
+
+      if (slotData) {
+        // 1. Validar formato nuevo: turnos/fecha/hora/serviceId
+        if (slotData[serviceId]) {
+          available = false;
+          break;
+        }
+
+        // 2. Validar formato viejo (por si acaso): turnos/fecha/hora = { serviceId: '...' }
+        // Solo bloquea si el serviceId coincide
+        if (slotData.serviceId === serviceId && slotData.date) {
+          available = false;
+          break;
+        }
+      }
+    }
+
+    slots.push({ time, available });
+  }
+
+  return slots;
+}
+
+export async function migrateOldBookings() {
+  const snapshot = await get(ref(db, rootPath("turnos")));
+  const oldData = snapshot.val() || {};
+  let migrated = 0;
+
+  for (const [date, times] of Object.entries(oldData)) {
+    for (const [time, value] of Object.entries(times || {})) {
+      // Check if this is old format (booking object, not new format)
+      if (value && value.serviceId && value.date && !value[Object.keys(value)[0]]?.serviceId) {
+        // This is old format, migrate to new format
+        const newPath = rootPath(`turnos/${date}/${time}/${value.serviceId}`);
+        await set(ref(db, newPath), value);
+
+        // Remove old format data
+        await set(ref(db, rootPath(`turnos/${date}/${time}`)), null);
+        migrated++;
+      }
+    }
+  }
+
+  return migrated;
 }
 
 export function buildAvailableDates(config) {
@@ -165,34 +230,48 @@ export async function upsertUserProfile(user) {
   });
 }
 
-export async function createBooking({ date, time, service, user, customer }) {
-  const bookingRef = ref(db, rootPath(`turnos/${date}/${time}`));
+export async function createBooking({ date, time, service, user, customer, durationMinutes }) {
+  const duration = durationMinutes || 60;
+  const blocks = Math.floor(duration / 60);
 
-  const transaction = await runTransaction(bookingRef, (currentValue) => {
-    if (currentValue) {
-      return;
+  for (let i = 0; i < blocks; i += 1) {
+    const [hour] = time.split(":").map(Number);
+    const slotTime = `${String(hour + i).padStart(2, "0")}:00`;
+    const bookingRef = ref(db, rootPath(`turnos/${date}/${slotTime}/${service.id}`));
+
+    const isFirst = i === 0;
+    const transaction = await runTransaction(bookingRef, (currentValue) => {
+      if (currentValue) {
+        return;
+      }
+
+      return {
+        date,
+        time: slotTime,
+        serviceId: service.id,
+        serviceName: service.name,
+        price: Number(service.price || 0),
+        paymentLink: service.paymentLink || "",
+        durationMinutes: Number(service.durationMinutes || 60),
+        status: service.paymentLink ? "pendiente_pago" : "confirmado",
+        createdAt: new Date().toISOString(),
+        customer,
+        user: {
+          uid: user.uid,
+          email: user.email || "",
+          displayName: user.displayName || "",
+        },
+        bookingGroup: isFirst ? `${date}-${time}-${service.id}` : `${date}-${time}-${service.id}`,
+        isPrimary: isFirst,
+      };
+    });
+
+    if (!transaction.committed) {
+      return false;
     }
+  }
 
-    return {
-      date,
-      time,
-      serviceId: service.id,
-      serviceName: service.name,
-      price: Number(service.price || 0),
-      paymentLink: service.paymentLink || "",
-      durationMinutes: Number(service.durationMinutes || 60),
-      status: service.paymentLink ? "pendiente_pago" : "confirmado",
-      createdAt: new Date().toISOString(),
-      customer,
-      user: {
-        uid: user.uid,
-        email: user.email || "",
-        displayName: user.displayName || "",
-      },
-    };
-  });
-
-  return transaction.committed;
+  return true;
 }
 
 export async function createManualBooking({
@@ -202,35 +281,50 @@ export async function createManualBooking({
   adminUser,
   customer,
   status,
+  durationMinutes,
 }) {
-  const bookingRef = ref(db, rootPath(`turnos/${date}/${time}`));
+  const duration = durationMinutes || 60;
+  const blocks = Math.floor(duration / 60);
 
-  const transaction = await runTransaction(bookingRef, (currentValue) => {
-    if (currentValue) {
-      return;
+  for (let i = 0; i < blocks; i += 1) {
+    const [hour] = time.split(":").map(Number);
+    const slotTime = `${String(hour + i).padStart(2, "0")}:00`;
+    const bookingRef = ref(db, rootPath(`turnos/${date}/${slotTime}/${service.id}`));
+
+    const isFirst = i === 0;
+    const transaction = await runTransaction(bookingRef, (currentValue) => {
+      if (currentValue) {
+        return;
+      }
+
+      return {
+        date,
+        time: slotTime,
+        serviceId: service.id,
+        serviceName: service.name,
+        price: Number(service.price || 0),
+        paymentLink: service.paymentLink || "",
+        durationMinutes: Number(service.durationMinutes || 60),
+        status: status || (service.paymentLink ? "pendiente_pago" : "confirmado"),
+        source: "panel",
+        createdAt: new Date().toISOString(),
+        customer,
+        user: {
+          uid: adminUser?.uid || "panel-manual",
+          email: adminUser?.email || "",
+          displayName: adminUser?.displayName || "Carga manual",
+        },
+        bookingGroup: `${date}-${time}-${service.id}`,
+        isPrimary: isFirst,
+      };
+    });
+
+    if (!transaction.committed) {
+      return false;
     }
+  }
 
-    return {
-      date,
-      time,
-      serviceId: service.id,
-      serviceName: service.name,
-      price: Number(service.price || 0),
-      paymentLink: service.paymentLink || "",
-      durationMinutes: Number(service.durationMinutes || 60),
-      status: status || (service.paymentLink ? "pendiente_pago" : "confirmado"),
-      source: "panel",
-      createdAt: new Date().toISOString(),
-      customer,
-      user: {
-        uid: adminUser?.uid || "panel-manual",
-        email: adminUser?.email || "",
-        displayName: adminUser?.displayName || "Carga manual",
-      },
-    };
-  });
-
-  return transaction.committed;
+  return true;
 }
 
 export async function fetchBookings() {
@@ -241,17 +335,25 @@ export async function fetchBookings() {
 export function flattenBookings(bookingsByDate = {}) {
   return Object.entries(bookingsByDate)
     .flatMap(([date, bookingsByTime]) =>
-      Object.entries(bookingsByTime || {}).map(([time, booking]) => ({
-        ...booking,
-        date,
-        time,
-      })),
+      Object.entries(bookingsByTime || {}).flatMap(([time, value]) => {
+        // Old format: turnos/{date}/{time} = booking object
+        if (value && value.serviceId && value.date) {
+          return [{ ...value, date, time, serviceId: value.serviceId }];
+        }
+        // New format: turnos/{date}/{time}/{serviceId} = booking object
+        return Object.entries(value || {}).map(([serviceId, booking]) => ({
+          ...booking,
+          date,
+          time,
+          serviceId,
+        }));
+      }),
     )
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 }
 
-export async function updateBooking(date, time, payload) {
-  await update(ref(db, rootPath(`turnos/${date}/${time}`)), payload);
+export async function updateBooking(date, time, serviceId, payload) {
+  await update(ref(db, rootPath(`turnos/${date}/${time}/${serviceId}`)), payload);
 }
 
 export function serviceEntries(services = {}) {
@@ -269,16 +371,16 @@ export function buildCustomerHistory(bookings = []) {
 
   bookings.forEach((booking) => {
     const name = booking.customer?.fullName?.trim() || "Cliente sin nombre";
+    const band = booking.customer?.band?.trim() || "";
     const whatsapp = booking.customer?.whatsapp?.trim() || "";
-    const instagram = booking.customer?.instagram?.trim() || "";
     const key = (whatsapp || name).toLowerCase();
 
     if (!grouped.has(key)) {
       grouped.set(key, {
         key,
+        band,
         fullName: name,
         whatsapp,
-        instagram,
         bookings: [],
       });
     }

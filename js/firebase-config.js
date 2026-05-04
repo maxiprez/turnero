@@ -1,12 +1,12 @@
 export const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  apiKey: "AIzaSyBg3tAtZbx_YAEf6PjNYE6TLZNPyv88VAI",
+  authDomain: "salasaurio-b34c9.firebaseapp.com",
+  databaseURL: "https://salasaurio-b34c9-default-rtdb.firebaseio.com",
+  projectId: "salasaurio-b34c9",
+  storageBucket: "salasaurio-b34c9.firebasestorage.app",
+  messagingSenderId: "498242916094",
+  appId: "1:498242916094:web:84f5ff4f2482145baf1faf",
+  measurementId: "G-YM34CSZH4E"
 };
 
-export const TURNERO_ROOT = "turnero";
+export const TURNERO_ROOT = "salasaurio";

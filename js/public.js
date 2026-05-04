@@ -14,6 +14,7 @@ import {
   buildAvailableDates,
   getDaySchedule,
   generateHourlySlots,
+  generateDurationSlots,
   serviceEntries,
   formatCurrency,
   formatDate,
@@ -25,6 +26,7 @@ const state = {
   bookings: {},
   selectedServiceId: null,
   selectedDate: null,
+  selectedDuration: 60,
   selectedTime: null,
   currentStep: 1,
 };
@@ -40,6 +42,7 @@ const elements = {
   userEmail: document.querySelector("#userEmail"),
   servicesGrid: document.querySelector("#servicesGrid"),
   dateChips: document.querySelector("#dateChips"),
+  durationChips: document.querySelector("#durationChips"),
   slotsGrid: document.querySelector("#slotsGrid"),
   statusMessage: document.querySelector("#statusMessage"),
   wizardBookingForm: document.querySelector("#wizardBookingForm"),
@@ -50,6 +53,7 @@ const elements = {
   summaryPrice: document.querySelector("#summaryPrice"),
   summaryChipService: document.querySelector("#summaryChipService"),
   summaryChipDate: document.querySelector("#summaryChipDate"),
+  summaryChipDuration: document.querySelector("#summaryChipDuration"),
   summaryChipTime: document.querySelector("#summaryChipTime"),
   successMessage: document.querySelector("#successMessage"),
   successService: document.querySelector("#successService"),
@@ -61,9 +65,11 @@ const elements = {
   toStep2Button: document.querySelector("#toStep2Button"),
   toStep3Button: document.querySelector("#toStep3Button"),
   toStep4Button: document.querySelector("#toStep4Button"),
+  toStep5Button: document.querySelector("#toStep5Button"),
   backToStep1Button: document.querySelector("#backToStep1Button"),
   backToStep2Button: document.querySelector("#backToStep2Button"),
   backToStep3Button: document.querySelector("#backToStep3Button"),
+  backToStep4Button: document.querySelector("#backToStep4Button"),
   restartWizardButton: document.querySelector("#restartWizardButton"),
 };
 
@@ -103,6 +109,14 @@ function bindEvents() {
   });
 
   elements.toStep4Button.addEventListener("click", () => {
+    if (!state.selectedDuration) {
+      setStatus("Elegí una duración para continuar.", true);
+      return;
+    }
+    setStep(4);
+  });
+
+  elements.toStep5Button.addEventListener("click", () => {
     if (!state.selectedTime) {
       setStatus("Elegí un horario para continuar.", true);
       return;
@@ -112,12 +126,13 @@ function bindEvents() {
       return;
     }
     updateBookingSummary();
-    setStep(4);
+    setStep(5);
   });
 
   elements.backToStep1Button.addEventListener("click", () => setStep(1));
   elements.backToStep2Button.addEventListener("click", () => setStep(2));
   elements.backToStep3Button.addEventListener("click", () => setStep(3));
+  elements.backToStep4Button.addEventListener("click", () => setStep(4));
   elements.restartWizardButton.addEventListener("click", resetWizard);
   elements.wizardBookingForm.addEventListener("submit", submitBooking);
 }
@@ -132,6 +147,7 @@ async function loadInitialData() {
   renderBusiness();
   renderServices();
   renderDates();
+  renderDurations();
   renderSlots();
   renderWizard();
 }
@@ -161,9 +177,7 @@ function renderAuth(user) {
   elements.authLoggedIn.classList.toggle("hidden", !loggedIn);
 
   if (user) {
-    elements.userAvatar.src =
-      user.photoURL ||
-      "https://ui-avatars.com/api/?background=ffd5cb&color=ba4e43&name=NA";
+    elements.userAvatar.src = (state.user.photoURL && state.user.photoURL.replace(/s\d+-c/, "s200-c")) || "/favicon.jpg";
     elements.userName.textContent = user.displayName || "Cuenta Google";
     elements.userEmail.textContent = user.email || "";
   }
@@ -225,11 +239,42 @@ function renderDates() {
   elements.dateChips.querySelectorAll("[data-date]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedDate = button.dataset.date;
+      state.selectedDuration = 60;
       state.selectedTime = null;
       renderDates();
+      renderDurations();
       renderSlots();
       updateWizardSummary();
-      setStatus("Fecha elegida. Ahora elegí un horario.");
+      setStatus("Fecha elegida. Ahora elegí la duración.");
+    });
+  });
+}
+
+function renderDurations() {
+  const durations = [
+    { minutes: 60, label: "1 hora" },
+    { minutes: 120, label: "2 horas" },
+    { minutes: 180, label: "3 horas" },
+  ];
+
+  elements.durationChips.innerHTML = durations
+    .map(
+      (dur) => `
+        <button class="chip duration-chip ${dur.minutes === state.selectedDuration ? "selected" : ""}" type="button" data-duration="${dur.minutes}">
+          ${dur.label}
+        </button>
+      `,
+    )
+    .join("");
+
+  elements.durationChips.querySelectorAll("[data-duration]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedDuration = Number(button.dataset.duration);
+      state.selectedTime = null;
+      renderDurations();
+      renderSlots();
+      updateWizardSummary();
+      setStatus(`Duración elegida: ${button.textContent.trim()}. Ahora elegí horario.`);
     });
   });
 }
@@ -237,31 +282,39 @@ function renderDates() {
 function renderSlots() {
   const schedule = state.selectedDate ? getDaySchedule(state.config, state.selectedDate) : null;
   const dayBookings = state.selectedDate ? state.bookings[state.selectedDate] || {} : {};
-  const slots = schedule?.enabled ? generateHourlySlots(schedule.start, schedule.end) : [];
+  const durationSlots = schedule?.enabled
+    ? generateDurationSlots(schedule.start, schedule.end, state.selectedDuration, dayBookings, state.selectedServiceId)
+    : [];
 
   if (!state.selectedServiceId) {
     elements.slotsGrid.innerHTML = "<p>Primero elegí un servicio.</p>";
     return;
   }
 
-  if (!slots.length) {
+  if (!state.selectedDuration) {
+    elements.slotsGrid.innerHTML = "<p>Primero elegí una duración.</p>";
+    return;
+  }
+
+  if (!durationSlots.length) {
     elements.slotsGrid.innerHTML = "<p>No hay horarios disponibles para ese día.</p>";
     return;
   }
 
-  elements.slotsGrid.innerHTML = slots
-    .map((time) => {
-      const taken = Boolean(dayBookings[time]);
+  elements.slotsGrid.innerHTML = durationSlots
+    .map((slot) => {
+      const taken = !slot.available;
       return `
         <button
-          class="slot-card ${taken ? "taken" : "available"} ${time === state.selectedTime ? "selected" : ""}"
+          class="slot-card ${taken ? "taken" : "available"} ${slot.time === state.selectedTime ? "selected" : ""}"
           type="button"
-          data-time="${time}"
+          data-time="${slot.time}"
           ${taken ? "disabled" : ""}
         >
-          ${time}
+          ${slot.time}
           <br />
-          <span class="small">${taken ? "Ocupado" : "Disponible"}</span>
+          <span class="small">${state.selectedDuration === 60 ? "1h" : `${state.selectedDuration / 60}h`}</span>
+          <span class="small">${taken ? " · Ocupado" : ""}</span>
         </button>
       `;
     })
@@ -307,7 +360,6 @@ async function submitBooking(event) {
   const customer = {
     fullName: String(formData.get("fullName") || "").trim(),
     whatsapp: String(formData.get("whatsapp") || "").trim(),
-    instagram: String(formData.get("instagram") || "").trim(),
     notes: String(formData.get("notes") || "").trim(),
   };
 
@@ -320,6 +372,7 @@ async function submitBooking(event) {
       service,
       user: state.user,
       customer,
+      durationMinutes: state.selectedDuration,
     });
 
     if (!committed) {
@@ -362,9 +415,9 @@ function renderWizard() {
 
   elements.stepIndicators.forEach((indicator) => {
     const step = Number(indicator.dataset.stepIndicator);
-    const visualStep = Math.min(state.currentStep, 4);
-    indicator.classList.toggle("is-active", step === visualStep && state.currentStep !== 5);
-    indicator.classList.toggle("is-complete", step < visualStep || state.currentStep === 5);
+    const visualStep = Math.min(state.currentStep, 5);
+    indicator.classList.toggle("is-active", step === visualStep && state.currentStep !== 6);
+    indicator.classList.toggle("is-complete", step < visualStep || state.currentStep === 6);
   });
 
   updateWizardSummary();
@@ -380,6 +433,9 @@ function updateWizardSummary() {
   elements.summaryChipDate.textContent = state.selectedDate
     ? formatDate(state.selectedDate)
     : "Fecha pendiente";
+  elements.summaryChipDuration.textContent = state.selectedDuration
+    ? `${state.selectedDuration / 60}h`
+    : "Duración pendiente";
   elements.summaryChipTime.textContent = state.selectedTime || "Horario pendiente";
 }
 
@@ -390,7 +446,9 @@ function updateBookingSummary() {
 
   elements.summaryService.textContent = service?.name || "-";
   elements.summaryDate.textContent = state.selectedDate ? formatDate(state.selectedDate) : "-";
-  elements.summaryTime.textContent = state.selectedTime || "-";
+  elements.summaryTime.textContent = state.selectedTime
+    ? `${state.selectedTime} (${state.selectedDuration / 60}h)`
+    : "-";
   elements.summaryPrice.textContent = service ? formatCurrency(service.price) : "-";
 }
 
@@ -398,18 +456,22 @@ function showSuccessStep(service) {
   const pendingPayment = Boolean(service.paymentLink);
   elements.successService.textContent = service.name;
   elements.successDate.textContent = state.selectedDate ? formatDate(state.selectedDate) : "-";
-  elements.successTime.textContent = state.selectedTime || "-";
+  elements.successTime.textContent = state.selectedTime
+    ? `${state.selectedTime} (${state.selectedDuration / 60}h)`
+    : "-";
   elements.successStatus.textContent = pendingPayment ? "Pendiente de pago" : "Confirmado";
   elements.successMessage.textContent = pendingPayment
     ? "Tu turno quedó reservado. Ahora solo falta completar el pago para dejarlo confirmado."
     : "Tu turno quedó confirmado con éxito. Te esperamos en el horario elegido.";
-  setStep(5);
+  setStep(6);
 }
 
 function resetWizard() {
+  state.selectedDuration = 60;
   state.selectedTime = null;
   updateWizardSummary();
   updateBookingSummary();
+  renderDurations();
   renderSlots();
   setStep(1);
 }

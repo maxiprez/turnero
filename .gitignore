@@ -1,2 +1,4 @@
 .DS_Store
 Thumbs.db
+js/firebase-config.js
+node_modules/

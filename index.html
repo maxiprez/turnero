@@ -3,21 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Turnero Nail Art</title>
+    <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
+    <title>Salasaurio turnero reservas online</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="/css/output.css">
   </head>
   <body class="theme-public">
     <div class="page-shell">
       <header class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Turnos online</p>
-          <h1 id="businessName">Nail Art Studio</h1>
+          <p class="eyebrow">Reservas online</p>
+          <h1 id="businessName">SalaSaurio</h1>
           <p class="hero-text">
             Reservá tu turno en pocos pasos. Elegís el servicio, iniciás sesión
             con Google y apartás tu horario.
@@ -73,12 +74,19 @@
               <div class="wizard-step" data-step-indicator="3">
                 <span class="wizard-step-number">3</span>
                 <span class="wizard-step-copy">
-                  <strong>Horario</strong>
-                  <small>Elegí tu turno de una hora</small>
+                  <strong>Duración</strong>
+                  <small>¿Cuántas horas ensayás?</small>
                 </span>
               </div>
               <div class="wizard-step" data-step-indicator="4">
                 <span class="wizard-step-number">4</span>
+                <span class="wizard-step-copy">
+                  <strong>Horario</strong>
+                  <small>Elegí tu turno</small>
+                </span>
+              </div>
+              <div class="wizard-step" data-step-indicator="5">
+                <span class="wizard-step-number">5</span>
                 <span class="wizard-step-copy">
                   <strong>Datos</strong>
                   <small>Confirmá tu reserva</small>
@@ -90,6 +98,7 @@
           <div id="wizardSummary" class="wizard-summary">
             <span class="tag" id="summaryChipService">Servicio pendiente</span>
             <span class="tag" id="summaryChipDate">Fecha pendiente</span>
+            <span class="tag" id="summaryChipDuration">Duración pendiente</span>
             <span class="tag" id="summaryChipTime">Horario pendiente</span>
           </div>
         </section>
@@ -97,7 +106,7 @@
         <section class="panel-block wizard-panel" data-step-panel="1">
           <div class="section-heading">
             <p class="section-label">Paso 1</p>
-            <h2>Elegí un servicio</h2>
+            <h2>Elegí una sala</h2>
           </div>
           <div id="servicesGrid" class="services-grid"></div>
           <div class="wizard-actions">
@@ -118,7 +127,7 @@
               Volver
             </button>
             <button id="toStep3Button" class="button button-primary" type="button">
-              Seguir con el horario
+              Seguir con la duración
             </button>
           </div>
         </section>
@@ -126,15 +135,15 @@
         <section class="panel-block wizard-panel hidden" data-step-panel="3">
           <div class="section-heading">
             <p class="section-label">Paso 3</p>
-            <h2>Elegí tu horario</h2>
+            <h2>¿Cuántas horas necesitás ensayar?</h2>
           </div>
-          <div id="slotsGrid" class="slots-grid"></div>
+          <div id="durationChips" class="duration-grid"></div>
           <div class="wizard-actions">
             <button id="backToStep2Button" class="button button-secondary" type="button">
               Volver
             </button>
             <button id="toStep4Button" class="button button-primary" type="button">
-              Completar mis datos
+              Seguir con el horario
             </button>
           </div>
         </section>
@@ -142,6 +151,22 @@
         <section class="panel-block wizard-panel hidden" data-step-panel="4">
           <div class="section-heading">
             <p class="section-label">Paso 4</p>
+            <h2>Elegí tu horario</h2>
+          </div>
+          <div id="slotsGrid" class="slots-grid"></div>
+          <div class="wizard-actions">
+            <button id="backToStep3Button" class="button button-secondary" type="button">
+              Volver
+            </button>
+            <button id="toStep5Button" class="button button-primary" type="button">
+              Completar mis datos
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-block wizard-panel hidden" data-step-panel="5">
+          <div class="section-heading">
+            <p class="section-label">Paso 5</p>
             <h2>Completá tus datos</h2>
           </div>
 
@@ -152,13 +177,13 @@
             </label>
 
             <label class="field">
-              <span>WhatsApp</span>
-              <input id="whatsapp" name="whatsapp" type="text" required />
+              <span>Banda</span>
+              <input id="band" name="band" type="text" required />
             </label>
 
             <label class="field">
-              <span>Instagram</span>
-              <input id="instagram" name="instagram" type="text" />
+              <span>WhatsApp</span>
+              <input id="whatsapp" name="whatsapp" type="text" pattern="[0-9]{10}" placeholder="1123456789" required />
             </label>
 
             <label class="field">
@@ -174,7 +199,7 @@
             </div>
 
             <div class="wizard-actions">
-              <button id="backToStep3Button" class="button button-secondary" type="button">
+              <button id="backToStep4Button" class="button button-secondary" type="button">
                 Volver
               </button>
               <button id="bookingSubmitButton" class="button button-primary" type="submit">
@@ -184,7 +209,7 @@
           </form>
         </section>
 
-        <section class="panel-block wizard-panel hidden" data-step-panel="5">
+        <section class="panel-block wizard-panel hidden" data-step-panel="6">
           <div class="wizard-success">
             <div class="wizard-success-icon">✓</div>
             <p class="section-label">Reserva confirmada</p>

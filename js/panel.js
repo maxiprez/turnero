@@ -10,16 +10,16 @@ import {
   fetchServices,
   saveServices,
   fetchBookings,
-  flattenBookings,
-  updateBooking,
+  createBooking,
   createManualBooking,
+  updateBooking,
+  flattenBookings,
   buildCustomerHistory,
-  upsertUserProfile,
-  WEEK_DAYS,
-  createServiceId,
   formatCurrency,
   formatDate,
-  toDateInputValue,
+  serviceEntries,
+  createServiceId,
+  buildWhatsappLink,
 } from "./shared.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -148,7 +148,7 @@ function renderAuth() {
 
   if (loggedIn) {
     elements.panelUserInfo.innerHTML = `
-      <img class="avatar" src="${state.user.photoURL || ""}" alt="Avatar" />
+      <img class="avatar" src="${(state.user.photoURL && state.user.photoURL.replace(/s\d+-c/, "s200-c")) || "/favicon.jpg"}" alt="Avatar" />
       <div>
         <strong>${state.user.displayName || "Cuenta Google"}</strong>
         <p class="muted">${state.user.email || ""}</p>
@@ -172,7 +172,7 @@ function renderAuth() {
     return;
   }
 
-  setGuardMessage("Panel listo para administrar turnos.");
+  setGuardMessage("Panel listo para administrar reservas.");
 }
 
 function userIsAdmin() {
@@ -322,7 +322,7 @@ function syncServicesFromForm() {
 
 function renderBookings() {
   if (!state.bookings.length) {
-    elements.bookingsList.innerHTML = "<p>No hay turnos registrados todavía.</p>";
+    elements.bookingsList.innerHTML = "<p>No hay reservas registradas todavía.</p>";
     return;
   }
 
@@ -344,13 +344,14 @@ function renderBookings() {
           </div>
           <p><strong>${booking.serviceName}</strong> · ${formatCurrency(booking.price)}</p>
           <p><strong>Cliente:</strong> ${booking.customer?.fullName || "-"}</p>
+          <p><strong>Banda:</strong> ${booking.customer?.band || "-"}</p>
           <p><strong>WhatsApp:</strong> ${booking.customer?.whatsapp || "-"}</p>
-          <p><strong>Instagram:</strong> ${booking.customer?.instagram || "-"}</p>
+          ${booking.customer?.whatsapp ? `<a href="${buildWhatsappLink(booking)}" target="_blank" rel="noopener noreferrer" class="button button-secondary">Enviar WhatsApp</a>` : ""}
           <p><strong>Observaciones:</strong> ${booking.customer?.notes || "-"}</p>
           <p><strong>Email login:</strong> ${booking.user?.email || "-"}</p>
           <label class="field">
             <span>Estado</span>
-            <select data-booking-status="${booking.date}|${booking.time}">
+            <select data-booking-status="${booking.date}|${booking.time}|${booking.serviceId}">
               <option value="pendiente_pago" ${booking.status === "pendiente_pago" ? "selected" : ""}>Pendiente de pago</option>
               <option value="confirmado" ${booking.status === "confirmado" ? "selected" : ""}>Confirmado</option>
               <option value="cancelado" ${booking.status === "cancelado" ? "selected" : ""}>Cancelado</option>
@@ -363,11 +364,11 @@ function renderBookings() {
 
   elements.bookingsList.querySelectorAll("[data-booking-status]").forEach((select) => {
     select.addEventListener("change", async () => {
-      const [date, time] = select.dataset.bookingStatus.split("|");
-      await updateBooking(date, time, { status: select.value });
+      const [date, time, serviceId] = select.dataset.bookingStatus.split("|");
+      await updateBooking(date, time, serviceId, { status: select.value });
       state.bookings = flattenBookings(await fetchBookings());
       renderBookings();
-      setGuardMessage("Estado del turno actualizado.");
+      setGuardMessage("Estado de la reserva actualizado.");
     });
   });
 }
@@ -376,7 +377,7 @@ function renderCustomers() {
   const customers = buildCustomerHistory(state.bookings);
 
   if (!customers.length) {
-    elements.customersList.innerHTML = "<p>Todavía no hay clientas con historial.</p>";
+    elements.customersList.innerHTML = "<p>Todavía no hay clientes con historial.</p>";
     return;
   }
 
@@ -399,12 +400,12 @@ function renderCustomers() {
       return `
         <article class="booking-card">
           <div class="booking-meta">
-            <span class="tag">${customer.bookings.length} turno(s)</span>
+            <span class="tag">${customer.bookings.length} reserva(s)</span>
             <span class="tag">${latest ? `Último: ${formatDate(latest.date)}` : "Sin actividad"}</span>
           </div>
           <p><strong>${customer.fullName}</strong></p>
+          <p><strong>Banda:</strong> ${customer.band || "-"}</p>
           <p><strong>WhatsApp:</strong> ${customer.whatsapp || "-"}</p>
-          <p><strong>Instagram:</strong> ${customer.instagram || "-"}</p>
           <div class="customer-history-list">${history}</div>
         </article>
       `;
@@ -421,7 +422,7 @@ async function submitManualBooking(event) {
     .find((item) => item.id === serviceId);
 
   if (!service) {
-    setGuardMessage("Elegí un servicio válido para cargar el turno.", true);
+    setGuardMessage("Elegí un servicio válido para cargar la reserva.", true);
     return;
   }
 
@@ -435,10 +436,11 @@ async function submitManualBooking(event) {
       service,
       adminUser: state.user,
       status: String(formData.get("manualStatus") || "confirmado"),
+      durationMinutes: Number(formData.get("manualDuration") || 60),
       customer: {
         fullName: String(formData.get("manualFullName") || "").trim(),
+        band: String(formData.get("manualBand") || "").trim(),
         whatsapp: String(formData.get("manualWhatsapp") || "").trim(),
-        instagram: String(formData.get("manualInstagram") || "").trim(),
         notes: String(formData.get("manualNotes") || "").trim(),
       },
     });
@@ -453,19 +455,31 @@ async function submitManualBooking(event) {
     state.bookings = flattenBookings(await fetchBookings());
     renderBookings();
     renderCustomers();
-    setGuardMessage("Turno manual guardado.");
+    
+    const whatsappLink = buildWhatsappLink({
+      serviceName: service.name,
+      date: String(formData.get("manualDate") || ""),
+      time: String(formData.get("manualTime") || "").slice(0, 5),
+      durationMinutes: Number(formData.get("manualDuration") || 60),
+      customer: {
+        whatsapp: String(formData.get("manualWhatsapp") || "").trim(),
+      },
+    });
+    
+    setGuardMessage(`Reserva manual guardada. <a href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Enviar WhatsApp</a>`);
+    setTimeout(() => setGuardMessage(""), 10000);
   } catch (error) {
-    setGuardMessage(`No se pudo guardar el turno manual: ${error.message}`, true);
+    setGuardMessage(`No se pudo guardar la reserva manual: ${error.message}`, true);
   } finally {
     elements.saveManualBookingButton.disabled = false;
   }
 }
 
 function setGuardMessage(message, isError = false) {
-  elements.panelGuardMessage.textContent = message;
+  elements.panelGuardMessage.innerHTML = message;
   elements.panelGuardMessage.style.color = isError ? "var(--danger)" : "var(--muted)";
   if (elements.panelNotice) {
-    elements.panelNotice.textContent = message;
+    elements.panelNotice.innerHTML = message;
     elements.panelNotice.style.color = isError ? "var(--danger)" : "var(--muted)";
   }
 }

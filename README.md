@@ -1,115 +1,168 @@
-# Turnero Nail Art
+# Salasaurio 🎸
 
-Construí un turnero para tu negocio... y te lo regalo. 🎁
-
-Hace poco tuve que cerrar mi propio emprendimiento y sé que hoy cada ayuda cuenta. Por eso, me puse a programar para vos.
-
-Este proyecto forma parte de una idea simple: crear herramientas reales, útiles y gratuitas para emprendedoras y pequeños negocios que necesitan digitalizarse sin gastar una fortuna.
-
-La app incluye:
-
-- Agenda de servicios y horarios.
-- Panel de gestión de clientes y turnos.
-- Login seguro con Google y manejo de precios.
-
-Es solo el inicio: voy a regalar 10 mini apps para emprendedores. 🛠️
+Sistema de turnos online para salas de ensayo. Reservá tu sala, elegí la duración y confirmá tu horario sin llamadas ni mensajes.
 
 ## Para quién es esta app
 
-Esta app está pensada para negocios que trabajan por agenda, por ejemplo:
+Pensada para salas de ensayo que necesitan digitalizar sus reservas:
 
-- Nail art
-- Belleza y estética
-- Peluquerías
-- Lashistas
-- Cosmetología
-- Servicios personalizados por turno
+- Salas de ensayo para bandas
+- Estudios de grabación
+- Espacios de música por hora
 
 ## Qué resuelve
 
-`Turnero Nail Art` permite que una clienta entre, inicie sesión con Google, elija un servicio, seleccione un día y un horario disponible, complete sus datos y reserve un turno.
+Una banda entra al sitio, inicia sesión con Google, elige la sala, la fecha, la duración y el horario disponible, completa los datos del grupo y confirma la reserva.
 
-Del otro lado, el negocio puede administrar la agenda, los servicios, los precios y ver la información de las reservas desde un panel.
+Del otro lado, el administrador de la sala puede gestionar la agenda, las salas, los precios y ver toda la información de las reservas desde un panel.
 
 ## Funcionalidades actuales
 
 - Reserva online desde la web pública.
-- Flujo de reserva tipo wizard o asistente multipasos.
-- Login con Google para clientas y administradoras.
-- Registro automático de usuarias en Firebase.
-- Servicios cargados desde base de datos.
-- Horarios y configuración del negocio administrables.
-- Panel para ver turnos otorgados y datos del cliente.
-- Soporte para link de pago por servicio.
+- Flujo de reserva tipo wizard multipasos (sala → fecha → duración → horario → datos).
+- Selección de duración flexible (1h, 2h, 3h).
+- Disponibilidad por sala independiente: reservar una sala no bloquea las demás.
+- Login con Google para bandas y administradores.
+- Registro automático de usuarios en Firebase.
+- Campo para nombre de banda en el formulario de reserva.
+- Salas y precios cargados y editables desde Firebase.
+- Horarios y configuración de la sala administrables desde el panel.
+- Panel para ver turnos registrados y datos del cliente.
+- Soporte para link de pago por sala.
 
 ## Stack tecnológico
 
 - `HTML5`
-- `CSS3`
+- `CSS3` con `Tailwind CSS v4`
 - `JavaScript vanilla`
 - `Firebase Authentication`
 - `Firebase Realtime Database`
 
 ## Cómo está organizado
 
-- [index.html](/Users/jonatanariste/develop/Argentinaps/turnero/index.html): sitio público para reservar turnos
-- [panel/index.html](/Users/jonatanariste/develop/Argentinaps/turnero/panel/index.html): panel administrativo
-- [js/public.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/public.js): lógica del flujo de reserva
-- [js/panel.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/panel.js): lógica del panel
-- [js/shared.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/shared.js): helpers compartidos y acceso a datos
-- [css/styles.css](/Users/jonatanariste/develop/Argentinaps/turnero/css/styles.css): estilos de toda la app
-- [firebase-rules.json](/Users/jonatanariste/develop/Argentinaps/turnero/firebase-rules.json): ejemplo inicial de reglas
+```
+salasaurio/
+├── index.html              # Sitio público para reservar salas
+├── panel/
+│   └── index.html          # Panel administrativo
+├── js/
+│   ├── public.js           # Lógica del flujo de reserva
+│   ├── panel.js            # Lógica del panel
+│   ├── shared.js           # Helpers compartidos y acceso a datos
+│   ├── firebase.js         # Inicialización y exports de Firebase
+│   └── firebase-config.js  # Credenciales (no commitear)
+├── src/
+│   └── input.css           # Entrada de Tailwind CSS
+├── css/
+│   └── output.css          # CSS compilado (generado automáticamente)
+└── firebase-rules.json     # Reglas de seguridad de Firebase
+```
 
 ## Base de datos
 
-Todo se guarda dentro del nodo `turnero/` en Firebase Realtime Database:
+Todo se guarda dentro del nodo `salasaurio/` en Firebase Realtime Database:
 
-- `turnero/usuarios/{uid}`: personas que inician sesión con Google
-- `turnero/config`: configuración general del negocio
-- `turnero/servicios/{serviceId}`: servicios, precios, duración y links de pago
-- `turnero/turnos/{fecha}/{hora}`: turnos reservados
-
-Base conectada actualmente:
-
-`https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com/`
-
-Completá tus credenciales reales en:
-
-- [js/firebase-config.js](/Users/jonatanariste/develop/Argentinaps/turnero/js/firebase-config.js)
+- `salasaurio/usuarios/{uid}` — personas que inician sesión con Google
+- `salasaurio/config` — configuración general de la sala
+- `salasaurio/servicios/{serviceId}` — salas con precios, duración y links de pago
+- `salasaurio/turnos/{fecha}/{hora}/{serviceId}` — reservas por sala (formato que permite múltiples salas por horario)
 
 ## Cómo levantarlo localmente
 
-Desde la carpeta del proyecto:
+### 1. Clonar el repositorio
 
 ```bash
-python3 -m http.server 8765
+git clone https://github.com/TU_USUARIO/salasaurio.git
+cd salasaurio
 ```
 
-Después abrí:
+### 2. Crear `js/firebase-config.js`
 
-- `http://localhost:8765/`
-- `http://localhost:8765/panel/`
+```js
+export const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+export const TURNERO_ROOT = "salasaurio";
+```
+
+### 3. Instalar dependencias y compilar CSS
+
+```bash
+npm install
+npm run dev
+```
+
+### 4. Levantar el servidor local
+
+```bash
+npx serve . -p 8765
+```
+
+Abrí en el navegador:
+
+- `http://localhost:8765/` — sitio público de reservas
+- `http://localhost:8765/panel/` — panel de administración
+
+## Reglas de Firebase recomendadas
+
+```json
+{
+  "rules": {
+    "salasaurio": {
+      "config": {
+        ".read": true,
+        ".write": "auth != null"
+      },
+      "servicios": {
+        ".read": true,
+        ".write": "auth != null"
+      },
+      "turnos": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      },
+      "usuarios": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    }
+  }
+}
+```
+
+## Scripts disponibles
+
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Compila Tailwind en modo watch |
+| `npm run build` | Genera el CSS minificado para producción |
 
 ## Estado del proyecto
 
-Hoy ya permite:
-
-- Reservar turnos online
-- Cargar y editar servicios desde Firebase
-- Registrar usuarias autenticadas
-- Gestionar agenda y turnos desde panel
-- Ofrecer links de pago según servicio
+- [x] Reserva online con wizard multipasos
+- [x] Disponibilidad independiente por sala
+- [x] Selección de duración (1h, 2h, 3h)
+- [x] Login con Google
+- [x] Panel de administración
+- [x] Diseño dark mode con estética rock
+- [ ] Recordatorio por WhatsApp post-reserva
+- [ ] Vista "mis reservas" para el usuario
+- [ ] Bloqueo de fechas específicas desde el panel
+- [ ] Exportar reservas a CSV
+- [ ] Publicar en Firebase Hosting
 
 ## Próximos pasos
 
-- Mejorar reglas de seguridad en Firebase
-- Separar más configuraciones por nodos específicos
-- Validar pagos automáticamente
+- Agregar link de WhatsApp post-reserva desde el panel
+- Filtros por sala y fecha en la lista de reservas
+- Permitir cancelación de reservas por parte del usuario
 - Publicar en Firebase Hosting
-- Seguir puliendo la experiencia mobile
-
-## Idea detrás del proyecto
-
-No es solamente un turnero. También es una forma de devolver algo útil a personas que están emprendiendo y necesitan una mano concreta.
-
-Si esta mini app te sirve, entonces ya cumplió su objetivo.

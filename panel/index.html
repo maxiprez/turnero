@@ -3,21 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel de turnos</title>
+    <title>Panel de reservas</title>
+    <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="/css/output.css" />
   </head>
   <body class="theme-panel">
     <div class="page-shell">
       <header class="panel-topbar">
         <div>
           <p class="eyebrow">Administración</p>
-          <h1>Panel de turnos</h1>
+          <h1>Panel de reservas</h1>
         </div>
 
         <div class="topbar-actions">
@@ -34,7 +35,7 @@
       <main id="panelContent" class="layout-grid hidden">
         <section class="panel-block panel-wide">
           <p id="panelNotice" class="status-message">
-            Configurá tu agenda, servicios y estados de turnos desde acá.
+            Configurá tu agenda, servicios y estados de reservas desde acá.
           </p>
         </section>
 
@@ -111,6 +112,14 @@
                 <input id="manualTime" name="manualTime" type="time" required />
               </label>
               <label class="field">
+                <span>Duración</span>
+                <select id="manualDuration" name="manualDuration">
+                  <option value="60">1 hora</option>
+                  <option value="120">2 horas</option>
+                  <option value="180">3 horas</option>
+                </select>
+              </label>
+              <label class="field">
                 <span>Servicio</span>
                 <select id="manualServiceId" name="manualServiceId" required></select>
               </label>
@@ -127,12 +136,12 @@
                 <input id="manualFullName" name="manualFullName" type="text" required />
               </label>
               <label class="field">
-                <span>WhatsApp</span>
-                <input id="manualWhatsapp" name="manualWhatsapp" type="text" required />
+                <span>Banda</span>
+                <input id="manualBand" name="manualBand" type="text" />
               </label>
               <label class="field">
-                <span>Instagram</span>
-                <input id="manualInstagram" name="manualInstagram" type="text" />
+                <span>WhatsApp</span>
+                <input id="manualWhatsapp" name="manualWhatsapp" type="text" required />
               </label>
               <label class="field">
                 <span>Observaciones</span>
@@ -148,7 +157,7 @@
         <section class="panel-block panel-wide">
           <div class="section-heading">
             <p class="section-label">Reservas</p>
-            <h2>Turnos registrados</h2>
+            <h2>Reservas registradas</h2>
           </div>
           <div id="bookingsList" class="bookings-list"></div>
         </section>
