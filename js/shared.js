@@ -91,68 +91,35 @@ export function generateHourlySlots(start, end) {
 }
 
 export function generateDurationSlots(start, end, durationMinutes, dayBookings, serviceId) {
+  if (!serviceId) return [];
+  
   const [startHour] = start.split(":").map(Number);
   const [endHour] = end.split(":").map(Number);
   const blocks = Math.floor(durationMinutes / 60);
   const slots = [];
 
- 
-
   for (let hour = startHour; hour <= endHour - blocks; hour += 1) {
     const time = `${String(hour).padStart(2, "0")}:00`;
     let available = true;
 
-    // Revisar cada bloque de una hora que compone la reserva total
     for (let i = 0; i < blocks; i += 1) {
       const currentHour = hour + i;
       const slotTime = `${String(currentHour).padStart(2, "0")}:00`;
       const slotData = dayBookings[slotTime];
 
-       console.log(`Revisando ${slotTime}:`, slotData);
+      if (!slotData) continue;
+      const isReserved = Object.keys(slotData).includes(serviceId);
+      
+      const isOldFormatMatch = slotData.serviceId === serviceId;
 
-      if (slotData) {
-        // 1. Validar formato nuevo: turnos/fecha/hora/serviceId
-        if (slotData[serviceId]) {
-          available = false;
-          break;
-        }
-
-        // 2. Validar formato viejo (por si acaso): turnos/fecha/hora = { serviceId: '...' }
-        // Solo bloquea si el serviceId coincide
-        if (slotData.serviceId === serviceId && slotData.date) {
-          available = false;
-          break;
-        }
+      if (isReserved || isOldFormatMatch) {
+        available = false;
+        break; 
       }
     }
-
     slots.push({ time, available });
   }
-
   return slots;
-}
-
-export async function migrateOldBookings() {
-  const snapshot = await get(ref(db, rootPath("turnos")));
-  const oldData = snapshot.val() || {};
-  let migrated = 0;
-
-  for (const [date, times] of Object.entries(oldData)) {
-    for (const [time, value] of Object.entries(times || {})) {
-      // Check if this is old format (booking object, not new format)
-      if (value && value.serviceId && value.date && !value[Object.keys(value)[0]]?.serviceId) {
-        // This is old format, migrate to new format
-        const newPath = rootPath(`turnos/${date}/${time}/${value.serviceId}`);
-        await set(ref(db, newPath), value);
-
-        // Remove old format data
-        await set(ref(db, rootPath(`turnos/${date}/${time}`)), null);
-        migrated++;
-      }
-    }
-  }
-
-  return migrated;
 }
 
 export function buildAvailableDates(config) {
@@ -336,11 +303,9 @@ export function flattenBookings(bookingsByDate = {}) {
   return Object.entries(bookingsByDate)
     .flatMap(([date, bookingsByTime]) =>
       Object.entries(bookingsByTime || {}).flatMap(([time, value]) => {
-        // Old format: turnos/{date}/{time} = booking object
         if (value && value.serviceId && value.date) {
           return [{ ...value, date, time, serviceId: value.serviceId }];
         }
-        // New format: turnos/{date}/{time}/{serviceId} = booking object
         return Object.entries(value || {}).map(([serviceId, booking]) => ({
           ...booking,
           date,

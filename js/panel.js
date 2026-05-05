@@ -10,16 +10,15 @@ import {
   fetchServices,
   saveServices,
   fetchBookings,
-  createBooking,
   createManualBooking,
   updateBooking,
   flattenBookings,
   buildCustomerHistory,
   formatCurrency,
   formatDate,
-  serviceEntries,
   createServiceId,
-  buildWhatsappLink,
+  WEEK_DAYS,
+  toDateInputValue
 } from "./shared.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -60,7 +59,7 @@ async function boot() {
   bindEvents();
   state.config = await fetchConfig();
   state.config.services = await fetchServices();
-  state.bookings = flattenBookings(await fetchBookings());
+  state.bookings = await fetchBookings();
   renderEverything();
   observeAuth();
 }
@@ -346,7 +345,6 @@ function renderBookings() {
           <p><strong>Cliente:</strong> ${booking.customer?.fullName || "-"}</p>
           <p><strong>Banda:</strong> ${booking.customer?.band || "-"}</p>
           <p><strong>WhatsApp:</strong> ${booking.customer?.whatsapp || "-"}</p>
-          ${booking.customer?.whatsapp ? `<a href="${buildWhatsappLink(booking)}" target="_blank" rel="noopener noreferrer" class="button button-secondary">Enviar WhatsApp</a>` : ""}
           <p><strong>Observaciones:</strong> ${booking.customer?.notes || "-"}</p>
           <p><strong>Email login:</strong> ${booking.user?.email || "-"}</p>
           <label class="field">
@@ -366,7 +364,7 @@ function renderBookings() {
     select.addEventListener("change", async () => {
       const [date, time, serviceId] = select.dataset.bookingStatus.split("|");
       await updateBooking(date, time, serviceId, { status: select.value });
-      state.bookings = flattenBookings(await fetchBookings());
+      state.bookings = await fetchBookings();
       renderBookings();
       setGuardMessage("Estado de la reserva actualizado.");
     });
@@ -452,21 +450,11 @@ async function submitManualBooking(event) {
 
     elements.manualBookingForm.reset();
     renderManualBookingDefaults();
-    state.bookings = flattenBookings(await fetchBookings());
+    state.bookings = await fetchBookings();
     renderBookings();
     renderCustomers();
     
-    const whatsappLink = buildWhatsappLink({
-      serviceName: service.name,
-      date: String(formData.get("manualDate") || ""),
-      time: String(formData.get("manualTime") || "").slice(0, 5),
-      durationMinutes: Number(formData.get("manualDuration") || 60),
-      customer: {
-        whatsapp: String(formData.get("manualWhatsapp") || "").trim(),
-      },
-    });
-    
-    setGuardMessage(`Reserva manual guardada. <a href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Enviar WhatsApp</a>`);
+    setGuardMessage("Reserva manual guardada.");
     setTimeout(() => setGuardMessage(""), 10000);
   } catch (error) {
     setGuardMessage(`No se pudo guardar la reserva manual: ${error.message}`, true);

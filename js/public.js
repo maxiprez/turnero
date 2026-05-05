@@ -142,6 +142,12 @@ async function loadInitialData() {
   state.config.services = await fetchServices();
   state.bookings = await fetchBookings();
   state.selectedServiceId = serviceEntries(state.config.services)[0]?.id || null;
+
+  const services = serviceEntries(state.config.services);
+  if (services.length > 0) {
+    state.selectedServiceId = services[0].id;
+  }
+
   state.selectedDate = buildAvailableDates(state.config)[0] || null;
 
   renderBusiness();
@@ -208,6 +214,7 @@ function renderServices() {
       state.selectedServiceId = card.dataset.serviceId;
       state.selectedTime = null;
       renderServices();
+      renderSlots();
       updateWizardSummary();
       setStatus("Servicio elegido. Ahora seguí con la fecha.");
     });
@@ -283,8 +290,14 @@ function renderSlots() {
   const schedule = state.selectedDate ? getDaySchedule(state.config, state.selectedDate) : null;
   const dayBookings = state.selectedDate ? state.bookings[state.selectedDate] || {} : {};
   const durationSlots = schedule?.enabled
-    ? generateDurationSlots(schedule.start, schedule.end, state.selectedDuration, dayBookings, state.selectedServiceId)
-    : [];
+  ? generateDurationSlots(
+      schedule.start, 
+      schedule.end, 
+      state.selectedDuration, 
+      dayBookings, 
+      state.selectedServiceId
+    )
+  : [];
 
   if (!state.selectedServiceId) {
     elements.slotsGrid.innerHTML = "<p>Primero elegí un servicio.</p>";
@@ -303,18 +316,22 @@ function renderSlots() {
 
   elements.slotsGrid.innerHTML = durationSlots
     .map((slot) => {
-      const taken = !slot.available;
+      const isTaken = !slot.available;
+      const isSelected = slot.time === state.selectedTime;
+      const disabledAttr = isTaken ? "disabled" : "";
+      const classAttr = `slot-card ${isTaken ? "taken" : "available"} ${isSelected ? "selected" : ""}`;
+
       return `
         <button
-          class="slot-card ${taken ? "taken" : "available"} ${slot.time === state.selectedTime ? "selected" : ""}"
+          class="${classAttr}"
           type="button"
           data-time="${slot.time}"
-          ${taken ? "disabled" : ""}
+          ${disabledAttr}
         >
           ${slot.time}
           <br />
-          <span class="small">${state.selectedDuration === 60 ? "1h" : `${state.selectedDuration / 60}h`}</span>
-          <span class="small">${taken ? " · Ocupado" : ""}</span>
+          <span class="small">${state.selectedDuration / 60}h</span>
+          <span class="small">${isTaken ? " · Ocupado" : ""}</span>
         </button>
       `;
     })
