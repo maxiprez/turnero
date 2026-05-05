@@ -42,20 +42,32 @@ Del otro lado, el administrador de la sala puede gestionar la agenda, las salas,
 
 ```
 salasaurio/
-├── index.html              # Sitio público para reservar salas
+├── index.html                      # Sitio público para reservar salas
 ├── panel/
-│   └── index.html          # Panel administrativo
+│   └── index.html                  # Panel administrativo
 ├── js/
-│   ├── public.js           # Lógica del flujo de reserva
-│   ├── panel.js            # Lógica del panel
-│   ├── shared.js           # Helpers compartidos y acceso a datos
-│   ├── firebase.js         # Inicialización y exports de Firebase
-│   └── firebase-config.js  # Credenciales (no commitear)
+│   ├── public.js                   # Lógica del flujo de reserva
+│   ├── panel.js                    # Lógica del panel
+│   ├── shared.js                   # Helpers compartidos y acceso a datos
+│   ├── firebase.js                 # Inicialización y exports de Firebase
+│   ├── firebase-config.js          # Credenciales reales (no commitear ⚠️)
+│   └── firebase-config.example.js  # Plantilla de credenciales
 ├── src/
-│   └── input.css           # Entrada de Tailwind CSS
+│   └── input.css                   # Entrada de Tailwind CSS
 ├── css/
-│   └── output.css          # CSS compilado (generado automáticamente)
-└── firebase-rules.json     # Reglas de seguridad de Firebase
+│   └── output.css                  # CSS compilado (generado, no commitear)
+├── firebase-rules.json             # Reglas de seguridad de Firebase
+└── .gitignore
+```
+
+## .gitignore
+
+Estos archivos no se commitean:
+
+```
+js/firebase-config.js
+css/output.css
+node_modules/
 ```
 
 ## Base de datos
@@ -65,7 +77,7 @@ Todo se guarda dentro del nodo `salasaurio/` en Firebase Realtime Database:
 - `salasaurio/usuarios/{uid}` — personas que inician sesión con Google
 - `salasaurio/config` — configuración general de la sala
 - `salasaurio/servicios/{serviceId}` — salas con precios, duración y links de pago
-- `salasaurio/turnos/{fecha}/{hora}/{serviceId}` — reservas por sala (formato que permite múltiples salas por horario)
+- `salasaurio/turnos/{fecha}/{hora}/{serviceId}` — reservas por sala (permite múltiples salas por horario)
 
 ## Cómo levantarlo localmente
 
@@ -77,6 +89,12 @@ cd salasaurio
 ```
 
 ### 2. Crear `js/firebase-config.js`
+
+Copiá el archivo de ejemplo y completá con tus credenciales:
+
+```bash
+cp js/firebase-config.example.js js/firebase-config.js
+```
 
 ```js
 export const firebaseConfig = {
