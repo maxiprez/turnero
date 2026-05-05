@@ -23,27 +23,34 @@ export const DEFAULT_CONFIG = {
   bookingWindowDays: 21,
   adminEmails: [],
   weeklySchedule: {
-    0: { enabled: false, start: "10:00", end: "18:00" },
-    1: { enabled: true, start: "10:00", end: "18:00" },
-    2: { enabled: true, start: "10:00", end: "18:00" },
-    3: { enabled: true, start: "10:00", end: "18:00" },
-    4: { enabled: true, start: "10:00", end: "18:00" },
-    5: { enabled: true, start: "10:00", end: "18:00" },
-    6: { enabled: true, start: "10:00", end: "18:00" },
+    0: { enabled: false, start: "15:00", end: "23:00" },
+    1: { enabled: true, start: "15:00", end: "23:00" },
+    2: { enabled: true, start: "15:00", end: "23:00" },
+    3: { enabled: true, start: "15:00", end: "23:00" },
+    4: { enabled: true, start: "15:00", end: "23:00" },
+    5: { enabled: true, start: "15:00", end: "23:00" },
+    6: { enabled: true, start: "15:00", end: "23:00" },
   },
 };
 
 export const DEFAULT_SERVICES = {
-  service_1: {
+  room_1: {
     name: "Sala 1",
     price: 18000,
     durationMinutes: 60,
     paymentLink: "",
     active: true,
   },
-  service_2: {
+  room_2: {
     name: "Sala 2",
     price: 15000,
+    durationMinutes: 60,
+    paymentLink: "",
+    active: true,
+  },
+  room_3: {
+    name: "Sala 3",
+    price: 18000,
     durationMinutes: 60,
     paymentLink: "",
     active: true,
@@ -204,7 +211,7 @@ export async function createBooking({ date, time, service, user, customer, durat
   for (let i = 0; i < blocks; i += 1) {
     const [hour] = time.split(":").map(Number);
     const slotTime = `${String(hour + i).padStart(2, "0")}:00`;
-    const bookingRef = ref(db, rootPath(`turnos/${date}/${slotTime}/${service.id}`));
+    const bookingRef = ref(db, rootPath(`reservas/${date}/${slotTime}/${service.id}`));
 
     const isFirst = i === 0;
     const transaction = await runTransaction(bookingRef, (currentValue) => {
@@ -256,7 +263,7 @@ export async function createManualBooking({
   for (let i = 0; i < blocks; i += 1) {
     const [hour] = time.split(":").map(Number);
     const slotTime = `${String(hour + i).padStart(2, "0")}:00`;
-    const bookingRef = ref(db, rootPath(`turnos/${date}/${slotTime}/${service.id}`));
+    const bookingRef = ref(db, rootPath(`reservas/${date}/${slotTime}/${service.id}`));
 
     const isFirst = i === 0;
     const transaction = await runTransaction(bookingRef, (currentValue) => {
@@ -295,7 +302,7 @@ export async function createManualBooking({
 }
 
 export async function fetchBookings() {
-  const snapshot = await get(ref(db, rootPath("turnos")));
+  const snapshot = await get(ref(db, rootPath("reservas")));
   return snapshot.val() || {};
 }
 
@@ -318,7 +325,7 @@ export function flattenBookings(bookingsByDate = {}) {
 }
 
 export async function updateBooking(date, time, serviceId, payload) {
-  await update(ref(db, rootPath(`turnos/${date}/${time}/${serviceId}`)), payload);
+  await update(ref(db, rootPath(`reservas/${date}/${time}/${serviceId}`)), payload);
 }
 
 export function serviceEntries(services = {}) {

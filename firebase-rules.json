@@ -1,11 +1,11 @@
 {
   "rules": {
-    "turnero": {
+    "salasaurio": {
       "config": {
         ".read": "auth != null",
         ".write": "auth != null"
       },
-      "turnos": {
+      "reservas": {
         ".read": "auth != null",
         "$date": {
           "$time": {

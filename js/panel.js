@@ -147,7 +147,7 @@ function renderAuth() {
 
   if (loggedIn) {
     elements.panelUserInfo.innerHTML = `
-      <img class="avatar" src="${(state.user.photoURL && state.user.photoURL.replace(/s\d+-c/, "s200-c")) || "/favicon.jpg"}" alt="Avatar" />
+      <img class="avatar" src="${state.user.photoURL || "/favicon.jpg"}" alt="Avatar" onerror="this.src='/favicon.jpg'" />
       <div>
         <strong>${state.user.displayName || "Cuenta Google"}</strong>
         <p class="muted">${state.user.email || ""}</p>
@@ -372,7 +372,7 @@ function renderBookings() {
 }
 
 function renderCustomers() {
-  const customers = buildCustomerHistory(state.bookings);
+  const customers = buildCustomerHistory(flattenBookings(state.bookings));
 
   if (!customers.length) {
     elements.customersList.innerHTML = "<p>Todavía no hay clientes con historial.</p>";

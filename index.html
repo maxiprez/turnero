@@ -20,7 +20,7 @@
           <p class="eyebrow">Reservas online</p>
           <h1 id="businessName">SalaSaurio</h1>
           <p class="hero-text">
-            Reservá tu turno en pocos pasos. Elegís el servicio, iniciás sesión
+            Reservá tu sala en pocos pasos. Elegís el servicio, iniciás sesión
             con Google y apartás tu horario.
           </p>
         </div>
@@ -54,7 +54,7 @@
           <div class="wizard-header">
             <div class="section-heading">
               <p class="section-label">Reserva guiada</p>
-              <h2>Pedí tu turno paso a paso</h2>
+              <h2>Reservá tu sala paso a paso</h2>
             </div>
             <div class="wizard-progress" aria-label="Progreso de la reserva">
               <div class="wizard-step is-active" data-step-indicator="1">
@@ -82,7 +82,7 @@
                 <span class="wizard-step-number">4</span>
                 <span class="wizard-step-copy">
                   <strong>Horario</strong>
-                  <small>Elegí tu turno</small>
+                  <small>Elegí tu sala</small>
                 </span>
               </div>
               <div class="wizard-step" data-step-indicator="5">
@@ -183,7 +183,8 @@
 
             <label class="field">
               <span>WhatsApp</span>
-              <input id="whatsapp" name="whatsapp" type="text" pattern="[0-9]{10}" placeholder="1123456789" required />
+              <input id="whatsapp" name="whatsapp" type="text" pattern="[0-9]{10}" placeholder="1123456789" required maxlength="10" />
+              <span id="whatsappError" class="error-message" style="color: red; font-size: 0.85rem; display: none;"></span>
             </label>
 
             <label class="field">
@@ -203,7 +204,7 @@
                 Volver
               </button>
               <button id="bookingSubmitButton" class="button button-primary" type="submit">
-                Confirmar turno
+                Confirmar reserva
               </button>
             </div>
           </form>
@@ -213,7 +214,7 @@
           <div class="wizard-success">
             <div class="wizard-success-icon">✓</div>
             <p class="section-label">Reserva confirmada</p>
-            <h2>Tu turno quedó agendado</h2>
+            <h2>Tu sala quedó agendada</h2>
             <p id="successMessage" class="hero-text">
               Guardamos tu reserva correctamente.
             </p>
@@ -227,7 +228,7 @@
 
             <div class="wizard-actions">
               <button id="restartWizardButton" class="button button-primary" type="button">
-                Reservar otro turno
+                Reservar otra sala
               </button>
             </div>
           </div>

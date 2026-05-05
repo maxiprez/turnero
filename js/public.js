@@ -71,6 +71,8 @@ const elements = {
   backToStep3Button: document.querySelector("#backToStep3Button"),
   backToStep4Button: document.querySelector("#backToStep4Button"),
   restartWizardButton: document.querySelector("#restartWizardButton"),
+  whatsappInput: document.querySelector("#whatsapp"),
+  whatsappError: document.querySelector("#whatsappError"),
 };
 
 async function boot() {
@@ -129,12 +131,78 @@ function bindEvents() {
     setStep(5);
   });
 
+  elements.servicesGrid.addEventListener("click", () => setTimeout(validateForm, 0));
+  elements.dateChips.addEventListener("click", () => setTimeout(validateForm, 0));
+  elements.slotsGrid.addEventListener("click", () => setTimeout(validateForm, 0));
+
   elements.backToStep1Button.addEventListener("click", () => setStep(1));
   elements.backToStep2Button.addEventListener("click", () => setStep(2));
   elements.backToStep3Button.addEventListener("click", () => setStep(3));
   elements.backToStep4Button.addEventListener("click", () => setStep(4));
   elements.restartWizardButton.addEventListener("click", resetWizard);
   elements.wizardBookingForm.addEventListener("submit", submitBooking);
+
+  elements.whatsappInput.addEventListener("input", () => validateForm());
+  elements.whatsappInput.addEventListener("blur", validateWhatsappBlur);
+  elements.wizardBookingForm.querySelectorAll("input[required], textarea[required]").forEach(input => {
+    input.addEventListener("input", () => validateForm());
+    input.addEventListener("blur", () => validateForm());
+  });
+  elements.bookingSubmitButton.disabled = true;
+  elements.bookingSubmitButton.classList.add("opacity-50", "cursor-not-allowed");
+}
+
+const formSchema = {
+  fullName: (value) => value.trim().length > 0,
+  band: (value) => value.trim().length > 0,
+  whatsapp: (value) => {
+    const cleaned = value.replace(/\D/g, "");
+    return cleaned.length === 10 && !cleaned.startsWith("0") && !cleaned.startsWith("15");
+  }
+};
+
+function validateForm() {
+  const formData = new FormData(elements.wizardBookingForm);
+  const whatsappValue = elements.whatsappInput.value.replace(/\D/g, "");
+  elements.whatsappInput.value = whatsappValue;
+
+  const isWhatsappValid = formSchema.whatsapp(whatsappValue);
+  const isFullNameValid = formSchema.fullName(formData.get("fullName") || "");
+  const isBandValid = formSchema.band(formData.get("band") || "");
+  const isServiceSelected = Boolean(state.selectedServiceId);
+  const isDateSelected = Boolean(state.selectedDate);
+  const isTimeSelected = Boolean(state.selectedTime);
+  const isUserLoggedIn = Boolean(state.user);
+
+  const isFormValid = isWhatsappValid && isFullNameValid && isBandValid && isServiceSelected && isDateSelected && isTimeSelected && isUserLoggedIn;
+
+  elements.bookingSubmitButton.disabled = !isFormValid;
+  if (isFormValid) {
+    elements.bookingSubmitButton.classList.remove("opacity-50", "cursor-not-allowed");
+  } else {
+    elements.bookingSubmitButton.classList.add("opacity-50", "cursor-not-allowed");
+  }
+
+  if (whatsappValue.length === 10 && (whatsappValue.startsWith("0") || whatsappValue.startsWith("15"))) {
+    elements.whatsappError.textContent = "El número no puede comenzar con 0 ni con 15.";
+    elements.whatsappError.style.display = "block";
+  } else if (whatsappValue.length === 10) {
+    elements.whatsappError.style.display = "none";
+  }
+}
+
+function validateWhatsappBlur() {
+  const whatsappValue = elements.whatsappInput.value.replace(/\D/g, "");
+  if (whatsappValue.length > 0 && whatsappValue.length < 10) {
+    elements.whatsappError.textContent = "El número debe tener 10 dígitos.";
+    elements.whatsappError.style.display = "block";
+  } else if (whatsappValue.length === 10 && (whatsappValue.startsWith("0") || whatsappValue.startsWith("15"))) {
+    elements.whatsappError.textContent = "El número no puede comenzar con 0 ni con 15.";
+    elements.whatsappError.style.display = "block";
+  } else {
+    elements.whatsappError.style.display = "none";
+  }
+  validateForm();
 }
 
 async function loadInitialData() {
@@ -159,17 +227,10 @@ async function loadInitialData() {
 }
 
 function observeAuth() {
-  onAuthStateChanged(auth, async (user) => {
+  onAuthStateChanged(auth, (user) => {
     state.user = user;
     renderAuth(user);
-
-    if (user) {
-      try {
-        await upsertUserProfile(user);
-      } catch (error) {
-        setStatus(`La sesión inició, pero no pudimos registrar la usuaria: ${error.message}`, true);
-      }
-    }
+    validateForm();
   });
 }
 
@@ -183,7 +244,8 @@ function renderAuth(user) {
   elements.authLoggedIn.classList.toggle("hidden", !loggedIn);
 
   if (user) {
-    elements.userAvatar.src = (state.user.photoURL && state.user.photoURL.replace(/s\d+-c/, "s200-c")) || "/favicon.jpg";
+    elements.userAvatar.src = user.photoURL || "/favicon.jpg";
+    elements.userAvatar.onerror = () => { elements.userAvatar.src = "/favicon.jpg"; };
     elements.userName.textContent = user.displayName || "Cuenta Google";
     elements.userEmail.textContent = user.email || "";
   }
