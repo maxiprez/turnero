@@ -24,12 +24,12 @@ export const DEFAULT_CONFIG = {
   adminEmails: [],
   weeklySchedule: {
     0: { enabled: false, start: "15:00", end: "23:00" },
-    1: { enabled: true, start: "15:00", end: "23:00" },
-    2: { enabled: true, start: "15:00", end: "23:00" },
-    3: { enabled: true, start: "15:00", end: "23:00" },
-    4: { enabled: true, start: "15:00", end: "23:00" },
-    5: { enabled: true, start: "15:00", end: "23:00" },
-    6: { enabled: true, start: "15:00", end: "23:00" },
+    1: { enabled: true, start: "15:00", end: "01:00" },
+    2: { enabled: true, start: "15:00", end: "01:00" },
+    3: { enabled: true, start: "15:00", end: "01:00" },
+    4: { enabled: true, start: "15:00", end: "01:00" },
+    5: { enabled: true, start: "15:00", end: "01:00" },
+    6: { enabled: true, start: "15:00", end: "01:00" },
   },
 };
 
@@ -100,23 +100,30 @@ export function generateHourlySlots(start, end) {
 export function generateDurationSlots(start, end, durationMinutes, dayBookings, serviceId) {
   if (!serviceId) return [];
   
-  const [startHour] = start.split(":").map(Number);
-  const [endHour] = end.split(":").map(Number);
+  let [startHour] = start.split(":").map(Number);
+  let [endHour] = end.split(":").map(Number);
+  
+  if (endHour < startHour) {
+    endHour += 24;
+  }
+  
   const blocks = Math.floor(durationMinutes / 60);
   const slots = [];
 
   for (let hour = startHour; hour <= endHour - blocks; hour += 1) {
-    const time = `${String(hour).padStart(2, "0")}:00`;
+    const displayHour = hour >= 24 ? hour - 24 : hour;
+    const time = `${String(displayHour).padStart(2, "0")}:00`;
     let available = true;
 
     for (let i = 0; i < blocks; i += 1) {
       const currentHour = hour + i;
-      const slotTime = `${String(currentHour).padStart(2, "0")}:00`;
-      const slotData = dayBookings[slotTime];
+      const currentDisplayHour = currentHour >= 24 ? currentHour - 24 : currentHour;
+      const slotTime = `${String(currentDisplayHour).padStart(2, "0")}:00`;
+      
+      const slotData = currentHour >= 24 ? null : dayBookings[slotTime];
 
       if (!slotData) continue;
       const isReserved = Object.keys(slotData).includes(serviceId);
-      
       const isOldFormatMatch = slotData.serviceId === serviceId;
 
       if (isReserved || isOldFormatMatch) {
