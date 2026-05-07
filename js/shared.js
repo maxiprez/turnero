@@ -132,19 +132,20 @@ export function generateDurationSlots(start, end, durationMinutes, dayBookings, 
 export function buildAvailableDates(config) {
   const dates = [];
   const today = new Date();
-  const days = Number(config.bookingWindowDays || DEFAULT_CONFIG.bookingWindowDays);
-
+  const days = Number(config?.bookingWindowDays || DEFAULT_CONFIG.bookingWindowDays);
+  const effectiveConfig = config || DEFAULT_CONFIG;
+ 
   for (let index = 0; index < days; index += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() + index);
     const dateString = toDateInputValue(date);
-    const schedule = getDaySchedule(config, dateString);
-
+    const schedule = getDaySchedule(effectiveConfig, dateString);
+ 
     if (schedule?.enabled) {
       dates.push(dateString);
     }
   }
-
+ 
   return dates;
 }
 
@@ -350,7 +351,7 @@ export function buildCustomerHistory(bookings = []) {
     if (!grouped.has(key)) {
       grouped.set(key, {
         key,
-        band,
+        band: band,
         fullName: name,
         whatsapp,
         bookings: [],

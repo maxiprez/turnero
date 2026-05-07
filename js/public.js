@@ -10,10 +10,8 @@ import {
   fetchServices,
   fetchBookings,
   createBooking,
-  upsertUserProfile,
   buildAvailableDates,
   getDaySchedule,
-  generateHourlySlots,
   generateDurationSlots,
   serviceEntries,
   formatCurrency,
@@ -77,8 +75,8 @@ const elements = {
 
 async function boot() {
   bindEvents();
-  await loadInitialData();
   observeAuth();
+  await loadInitialData();
 }
 
 function bindEvents() {
@@ -206,18 +204,22 @@ function validateWhatsappBlur() {
 }
 
 async function loadInitialData() {
-  state.config = await fetchConfig();
+  state.config = (await fetchConfig()) || DEFAULT_CONFIG;
   state.config.services = await fetchServices();
-  state.bookings = await fetchBookings();
-  state.selectedServiceId = serviceEntries(state.config.services)[0]?.id || null;
-
+ 
+  try {
+    state.bookings = await fetchBookings();
+  } catch (error) {
+    state.bookings = {};
+  }
+ 
   const services = serviceEntries(state.config.services);
   if (services.length > 0) {
     state.selectedServiceId = services[0].id;
   }
-
+ 
   state.selectedDate = buildAvailableDates(state.config)[0] || null;
-
+ 
   renderBusiness();
   renderServices();
   renderDates();
@@ -439,6 +441,7 @@ async function submitBooking(event) {
   const customer = {
     fullName: String(formData.get("fullName") || "").trim(),
     whatsapp: String(formData.get("whatsapp") || "").trim(),
+    band: String(formData.get("band") || "").trim(),
     notes: String(formData.get("notes") || "").trim(),
   };
 
