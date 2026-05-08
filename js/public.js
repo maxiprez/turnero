@@ -17,6 +17,7 @@ import {
   formatCurrency,
   formatDate,
 } from "./shared.js";
+import { toast } from "./toast.js";
 
 const state = {
   user: null,
@@ -42,7 +43,6 @@ const elements = {
   dateChips: document.querySelector("#dateChips"),
   durationChips: document.querySelector("#durationChips"),
   slotsGrid: document.querySelector("#slotsGrid"),
-  statusMessage: document.querySelector("#statusMessage"),
   wizardBookingForm: document.querySelector("#wizardBookingForm"),
   bookingSubmitButton: document.querySelector("#bookingSubmitButton"),
   summaryService: document.querySelector("#summaryService"),
@@ -84,7 +84,7 @@ function bindEvents() {
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
-      setStatus(`No se pudo iniciar sesión: ${error.message}`, true);
+      toast(`No se pudo iniciar sesión: ${error.message}`, "error");
     }
   });
 
@@ -94,7 +94,11 @@ function bindEvents() {
 
   elements.toStep2Button.addEventListener("click", () => {
     if (!state.selectedServiceId) {
-      setStatus("Elegí un servicio para continuar.", true);
+      toast("Elegí un servicio para continuar.", "error");
+      return;
+    }
+    if (!state.user) {
+      toast("Necesitás iniciar sesión con Google antes de completar la reserva.", "error");
       return;
     }
     setStep(2);
@@ -102,7 +106,7 @@ function bindEvents() {
 
   elements.toStep3Button.addEventListener("click", () => {
     if (!state.selectedDate) {
-      setStatus("Elegí una fecha para continuar.", true);
+      toast("Elegí una fecha para continuar.", "error");
       return;
     }
     setStep(3);
@@ -110,7 +114,7 @@ function bindEvents() {
 
   elements.toStep4Button.addEventListener("click", () => {
     if (!state.selectedDuration) {
-      setStatus("Elegí una duración para continuar.", true);
+      toast("Elegí una duración para continuar.", "error");
       return;
     }
     setStep(4);
@@ -118,11 +122,7 @@ function bindEvents() {
 
   elements.toStep5Button.addEventListener("click", () => {
     if (!state.selectedTime) {
-      setStatus("Elegí un horario para continuar.", true);
-      return;
-    }
-    if (!state.user) {
-      setStatus("Necesitás iniciar sesión con Google antes de completar la reserva.", true);
+      toast("Elegí un horario para continuar.", "error");
       return;
     }
     updateBookingSummary();
@@ -280,7 +280,7 @@ function renderServices() {
       renderServices();
       renderSlots();
       updateWizardSummary();
-      setStatus("Servicio elegido. Ahora seguí con la fecha.");
+      toast("Servicio elegido. Ahora seguí con la fecha.");
     });
   });
 }
@@ -316,7 +316,7 @@ function renderDates() {
       renderDurations();
       renderSlots();
       updateWizardSummary();
-      setStatus("Fecha elegida. Ahora elegí la duración.");
+      toast("Fecha elegida. Ahora elegí la duración.");
     });
   });
 }
@@ -345,7 +345,7 @@ function renderDurations() {
       renderDurations();
       renderSlots();
       updateWizardSummary();
-      setStatus(`Duración elegida: ${button.textContent.trim()}. Ahora elegí horario.`);
+      toast(`Duración elegida: ${button.textContent.trim()}. Ahora elegí horario.`);
     });
   });
 }
@@ -404,36 +404,33 @@ function renderSlots() {
   elements.slotsGrid.querySelectorAll("[data-time]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!state.user) {
-        setStatus("Podés elegir horario ahora, pero vas a necesitar login con Google para confirmar.", false);
+        toast("Podés elegir horario ahora, pero vas a necesitar login con Google para confirmar.");
       }
 
       state.selectedTime = button.dataset.time;
       updateWizardSummary();
       updateBookingSummary();
       renderSlots();
-      setStatus("Horario elegido. Ya podés completar tus datos.");
+      toast("Horario elegido. Ya podés completar tus datos.");
     });
   });
-
-  if (!state.selectedTime) {
-    setStatus("Elegí un horario para continuar.");
-  }
 }
 
 async function submitBooking(event) {
   event.preventDefault();
-
-  if (!state.user) {
-    setStatus("Necesitás iniciar sesión con Google antes de reservar.", true);
-    return;
-  }
-
   const service = serviceEntries(state.config.services).find(
     (item) => item.id === state.selectedServiceId,
   );
-
+  if (!state.user) {
+    toast("Necesitás iniciar sesión con Google antes de reservar.", "error");
+    return;
+  }
+  if (!state.selectedTime) {
+    toast("Elegí un horario para continuar.");
+    return;
+  }
   if (!service || !state.selectedDate || !state.selectedTime) {
-    setStatus("Falta completar servicio, fecha u horario.", true);
+    toast("Falta completar servicio, fecha u horario.", "error");
     return;
   }
 
@@ -458,7 +455,7 @@ async function submitBooking(event) {
     });
 
     if (!committed) {
-      setStatus("Ese horario acaba de ocuparse. Elegí otro.", true);
+      toast("Ese horario acaba de ocuparse. Elegí otro.", "error");
       return;
     }
 
@@ -468,21 +465,16 @@ async function submitBooking(event) {
     showSuccessStep(service);
 
     if (service.paymentLink) {
-      setStatus("Turno reservado como pendiente de pago. Abrimos el link de pago en una nueva pestaña.");
+      toast("Turno reservado como pendiente de pago. Abrimos el link de pago en una nueva pestaña.", "success", 3000);
       window.open(service.paymentLink, "_blank", "noopener,noreferrer");
     } else {
-      setStatus("Turno reservado con éxito.");
+      toast("Turno reservado con éxito.", "success", 3000);
     }
   } catch (error) {
-    setStatus(`No se pudo reservar el turno: ${error.message}`, true);
+    toast(`No se pudo reservar el turno: ${error.message}`, "error");
   } finally {
     elements.bookingSubmitButton.disabled = false;
   }
-}
-
-function setStatus(message, isError = false) {
-  elements.statusMessage.textContent = message;
-  elements.statusMessage.style.color = isError ? "var(--danger)" : "var(--muted)";
 }
 
 function setStep(step) {

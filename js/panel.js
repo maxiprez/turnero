@@ -20,6 +20,7 @@ import {
   WEEK_DAYS,
   toDateInputValue
 } from "./shared.js";
+import { toast } from "./toast.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const state = {
@@ -69,7 +70,7 @@ function bindEvents() {
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
-      setGuardMessage(`No se pudo iniciar sesión: ${error.message}`, true);
+      toast(`No se pudo iniciar sesión: ${error.message}`, "error");
     }
   });
 
@@ -81,13 +82,13 @@ function bindEvents() {
     event.preventDefault();
     syncGeneralSettingsFromForm();
     await saveConfig(state.config);
-    setGuardMessage("Configuración general guardada.");
+    toast("Configuración general guardada.", "success", 2000);
   });
 
   elements.saveScheduleButton.addEventListener("click", async () => {
     syncScheduleFromForm();
     await saveConfig(state.config);
-    setGuardMessage("Agenda guardada.");
+    toast("Agenda guardada.", "success", 2000);
   });
 
   elements.addServiceButton.addEventListener("click", () => {
@@ -107,7 +108,7 @@ function bindEvents() {
     await saveServices(state.config.services);
     renderServicesAdmin();
     renderManualServiceOptions();
-    setGuardMessage("Servicios guardados.");
+    toast("Servicios guardados.", "success", 2000);
   });
 
   elements.manualBookingForm.addEventListener("submit", submitManualBooking);
@@ -120,7 +121,7 @@ function observeAuth() {
       try {
         await upsertUserProfile(user);
       } catch (error) {
-        setGuardMessage(`La sesión inició, pero no pudimos registrar la usuaria: ${error.message}`, true);
+        toast(`La sesión inició, pero no pudimos registrar la usuaria: ${error.message}`, "error");
       }
     }
     renderAuth();
@@ -159,19 +160,19 @@ function renderAuth() {
   elements.panelGuard.classList.toggle("hidden", isAdmin);
 
   if (!loggedIn) {
-    setGuardMessage("Iniciá sesión con una cuenta de Google para administrar el turnero.");
+    toast("Iniciá sesión con una cuenta de Google para administrar el turnero.", "info", 3000);
     return;
   }
 
   if (!isAdmin) {
-    setGuardMessage(
+    toast(
       "Tu cuenta no está en la lista de administradoras. Agregala en `adminEmails` desde Firebase la primera vez si necesitás bootstrapear el panel.",
-      true,
+      "error",
     );
     return;
   }
 
-  setGuardMessage("Panel listo para administrar reservas.");
+  toast("Panel listo para administrar reservas.", "success", 2000);
 }
 
 function userIsAdmin() {
@@ -366,7 +367,7 @@ function renderBookings() {
       await updateBooking(date, time, serviceId, { status: select.value });
       state.bookings = await fetchBookings();
       renderBookings();
-      setGuardMessage("Estado de la reserva actualizado.");
+      toast("Estado de la reserva actualizado.", "success", 2000);
     });
   });
 }
@@ -420,7 +421,7 @@ async function submitManualBooking(event) {
     .find((item) => item.id === serviceId);
 
   if (!service) {
-    setGuardMessage("Elegí un servicio válido para cargar la reserva.", true);
+    toast("Elegí un servicio válido para cargar la reserva.", "error");
     return;
   }
 
@@ -444,7 +445,7 @@ async function submitManualBooking(event) {
     });
 
     if (!committed) {
-      setGuardMessage("Ese horario ya está ocupado. Elegí otro.", true);
+      toast("Ese horario ya está ocupado. Elegí otro.", "error");
       return;
     }
 
@@ -454,21 +455,11 @@ async function submitManualBooking(event) {
     renderBookings();
     renderCustomers();
     
-    setGuardMessage("Reserva manual guardada.");
-    setTimeout(() => setGuardMessage(""), 10000);
+    toast("Reserva manual guardada.", "success", 2000);
   } catch (error) {
-    setGuardMessage(`No se pudo guardar la reserva manual: ${error.message}`, true);
+    toast(`No se pudo guardar la reserva manual: ${error.message}`, "error");
   } finally {
     elements.saveManualBookingButton.disabled = false;
-  }
-}
-
-function setGuardMessage(message, isError = false) {
-  elements.panelGuardMessage.innerHTML = message;
-  elements.panelGuardMessage.style.color = isError ? "var(--danger)" : "var(--muted)";
-  if (elements.panelNotice) {
-    elements.panelNotice.innerHTML = message;
-    elements.panelNotice.style.color = isError ? "var(--danger)" : "var(--muted)";
   }
 }
 
