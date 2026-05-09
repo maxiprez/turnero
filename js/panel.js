@@ -18,7 +18,9 @@ import {
   formatDate,
   createServiceId,
   WEEK_DAYS,
-  toDateInputValue
+  toDateInputValue,
+  upsertUserProfile,
+  userIsAdmin
 } from "./shared.js";
 import { toast } from "./toast.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -53,6 +55,7 @@ const elements = {
   manualStatus: document.querySelector("#manualStatus"),
   saveManualBookingButton: document.querySelector("#saveManualBookingButton"),
   bookingsList: document.querySelector("#bookingsList"),
+  exportCsvButton: document.querySelector("#exportCsvButton"),
   customersList: document.querySelector("#customersList"),
 };
 
@@ -112,6 +115,7 @@ function bindEvents() {
   });
 
   elements.manualBookingForm.addEventListener("submit", submitManualBooking);
+  elements.exportCsvButton.addEventListener("click", exportBookingsCsv);
 }
 
 function observeAuth() {
@@ -140,7 +144,7 @@ function renderEverything() {
 
 function renderAuth() {
   const loggedIn = Boolean(state.user);
-  const isAdmin = userIsAdmin();
+  const isAdmin = userIsAdmin(state.user, state.config);
 
   elements.panelLoginButton.classList.toggle("hidden", loggedIn);
   elements.panelLogoutButton.classList.toggle("hidden", !loggedIn);
@@ -173,20 +177,6 @@ function renderAuth() {
   }
 
   toast("Panel listo para administrar reservas.", "success", 2000);
-}
-
-function userIsAdmin() {
-  if (!state.user?.email) {
-    return false;
-  }
-
-  const admins = state.config?.adminEmails || [];
-
-  if (!admins.length) {
-    return true;
-  }
-
-  return admins.map((email) => email.toLowerCase()).includes(state.user.email.toLowerCase());
 }
 
 function renderGeneralSettings() {
@@ -321,12 +311,13 @@ function syncServicesFromForm() {
 }
 
 function renderBookings() {
-  if (!state.bookings.length) {
+  const flat = flattenBookings(state.bookings);
+  if (!flat.length) {
     elements.bookingsList.innerHTML = "<p>No hay reservas registradas todavía.</p>";
     return;
   }
 
-  elements.bookingsList.innerHTML = state.bookings
+  elements.bookingsList.innerHTML = flat
     .map((booking) => {
       const statusClass =
         booking.status === "confirmado"
@@ -348,6 +339,7 @@ function renderBookings() {
           <p><strong>WhatsApp:</strong> ${booking.customer?.whatsapp || "-"}</p>
           <p><strong>Observaciones:</strong> ${booking.customer?.notes || "-"}</p>
           <p><strong>Email login:</strong> ${booking.user?.email || "-"}</p>
+          <p><strong>Duración: </strong>${booking.durationMinutes / 60} horas</p>
           <label class="field">
             <span>Estado</span>
             <select data-booking-status="${booking.date}|${booking.time}|${booking.serviceId}">
@@ -370,6 +362,43 @@ function renderBookings() {
       toast("Estado de la reserva actualizado.", "success", 2000);
     });
   });
+}
+
+function exportBookingsCsv() {
+  const flat = flattenBookings(state.bookings);
+  if (!flat.length) {
+    toast("No hay reservas para exportar.", "info", 2000);
+    return;
+  }
+
+  const headers = ["Fecha", "Hora", "Sala", "Precio", "Estado", "Cliente", "Banda", "Duración (horas)", "WhatsApp", "Observaciones", "Email", "Creado"];
+  const rows = flat.map((b) => [
+    b.date,
+    b.time,
+    b.serviceName,
+    formatCurrency(b.price),
+    b.status || "pendiente_pago",
+    b.customer?.fullName || "",
+    b.customer?.band || "",
+    b.durationMinutes / 60,
+    b.customer?.whatsapp || "",
+    (b.customer?.notes || "").replace(/,/g, ";"),
+    b.user?.email || "",
+    b.createdAt ? new Date(b.createdAt).toLocaleString("es-AR") : "",
+  ]);
+
+  const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `reservas_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  toast(`Exportadas ${flat.length} reservas.`, "success", 2000);
 }
 
 function renderCustomers() {
@@ -405,6 +434,7 @@ function renderCustomers() {
           <p><strong>${customer.fullName}</strong></p>
           <p><strong>Banda:</strong> ${customer.band || "-"}</p>
           <p><strong>WhatsApp:</strong> ${customer.whatsapp || "-"}</p>
+          <p><strong>Duración: </strong>${customer.bookings.reduce((sum, booking) => sum + (booking.durationMinutes / 60 || 0), 0)} horas</p>
           <div class="customer-history-list">${history}</div>
         </article>
       `;

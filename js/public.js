@@ -16,6 +16,7 @@ import {
   serviceEntries,
   formatCurrency,
   formatDate,
+  userIsAdmin
 } from "./shared.js";
 import { toast } from "./toast.js";
 
@@ -71,12 +72,20 @@ const elements = {
   restartWizardButton: document.querySelector("#restartWizardButton"),
   whatsappInput: document.querySelector("#whatsapp"),
   whatsappError: document.querySelector("#whatsappError"),
+  panelLink: document.querySelector("#panelLink"),
 };
 
 async function boot() {
   bindEvents();
   observeAuth();
+  checkAdminStatus();
   await loadInitialData();
+  checkAdminStatus();
+}
+
+function checkAdminStatus() {
+  const isAdmin = userIsAdmin(state.user, state.config);
+  elements.panelLink.classList.toggle("hidden", !isAdmin);
 }
 
 function bindEvents() {
@@ -109,6 +118,10 @@ function bindEvents() {
       toast("Elegí una fecha para continuar.", "error");
       return;
     }
+    if (!state.user) {
+      toast("Necesitás iniciar sesión con Google antes de completar la reserva.", "error");
+      return;
+    }
     setStep(3);
   });
 
@@ -117,12 +130,20 @@ function bindEvents() {
       toast("Elegí una duración para continuar.", "error");
       return;
     }
+    if (!state.user) {
+      toast("Necesitás iniciar sesión con Google antes de completar la reserva.", "error");
+      return;
+    }
     setStep(4);
   });
 
   elements.toStep5Button.addEventListener("click", () => {
     if (!state.selectedTime) {
       toast("Elegí un horario para continuar.", "error");
+      return;
+    }
+    if (!state.user) {
+      toast("Necesitás iniciar sesión con Google antes de completar la reserva.", "error");
       return;
     }
     updateBookingSummary();
@@ -251,6 +272,8 @@ function renderAuth(user) {
     elements.userName.textContent = user.displayName || "Cuenta Google";
     elements.userEmail.textContent = user.email || "";
   }
+
+  checkAdminStatus();
 }
 
 function renderServices() {

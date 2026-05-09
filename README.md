@@ -175,7 +175,7 @@ Abrí en el navegador:
 - [ ] Recordatorio por WhatsApp post-reserva
 - [ ] Vista "mis reservas" para el usuario
 - [ ] Bloqueo de fechas específicas desde el panel
-- [ ] Exportar reservas a CSV
+- [x] Exportar reservas a CSV
 - [ ] Publicar en Firebase Hosting
 
 ## Próximos pasos

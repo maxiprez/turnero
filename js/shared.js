@@ -99,40 +99,36 @@ export function generateHourlySlots(start, end) {
 
 export function generateDurationSlots(start, end, durationMinutes, dayBookings, serviceId) {
   if (!serviceId) return [];
-  
+
   let [startHour] = start.split(":").map(Number);
   let [endHour] = end.split(":").map(Number);
-  
+
   if (endHour < startHour) {
     endHour += 24;
   }
-  
-  const blocks = Math.floor(durationMinutes / 60);
-  const slots = [];
 
+  const blocks = Math.floor((durationMinutes || 60) / 60);
+
+  const bookedRanges = [];
+  for (const [time, slotData] of Object.entries(dayBookings || {})) {
+    const [hour] = time.split(":").map(Number);
+
+    const booking = slotData[serviceId];
+    if (!booking) continue;
+
+    const dur = booking.durationMinutes || 60;
+    bookedRanges.push({ start: hour, end: hour + Math.floor(dur / 60) });
+  }
+
+  const slots = [];
   for (let hour = startHour; hour <= endHour - blocks; hour += 1) {
     const displayHour = hour >= 24 ? hour - 24 : hour;
     const time = `${String(displayHour).padStart(2, "0")}:00`;
-    let available = true;
-
-    for (let i = 0; i < blocks; i += 1) {
-      const currentHour = hour + i;
-      const currentDisplayHour = currentHour >= 24 ? currentHour - 24 : currentHour;
-      const slotTime = `${String(currentDisplayHour).padStart(2, "0")}:00`;
-      
-      const slotData = currentHour >= 24 ? null : dayBookings[slotTime];
-
-      if (!slotData) continue;
-      const isReserved = Object.keys(slotData).includes(serviceId);
-      const isOldFormatMatch = slotData.serviceId === serviceId;
-
-      if (isReserved || isOldFormatMatch) {
-        available = false;
-        break; 
-      }
-    }
+    const range = { start: hour, end: hour + blocks };
+    const available = !bookedRanges.some((br) => br.start < range.end && br.end > range.start);
     slots.push({ time, available });
   }
+
   return slots;
 }
 
@@ -192,6 +188,24 @@ export async function saveServices(services) {
   await set(ref(db, rootPath("servicios")), services);
 }
 
+export function userIsAdmin(user, config) {
+  if (!user?.email) {
+    return false;
+  }
+
+  if (!config) {
+    return false;
+  }
+
+  const admins = config.adminEmails || [];
+
+  if (!admins.length) {
+    return true;
+  }
+
+  return admins.map((email) => email.toLowerCase()).includes(user.email.toLowerCase());
+}
+
 export async function upsertUserProfile(user) {
   if (!user?.uid) {
     return;
@@ -213,47 +227,36 @@ export async function upsertUserProfile(user) {
 }
 
 export async function createBooking({ date, time, service, user, customer, durationMinutes }) {
-  const duration = durationMinutes || 60;
-  const blocks = Math.floor(duration / 60);
+  const blocks = Math.floor((durationMinutes || 60) / 60);
+  const bookingRef = ref(db, rootPath(`reservas/${date}/${time}/${service.id}`));
+  const priceTotal = Number(service.price || 0) * blocks;
 
-  for (let i = 0; i < blocks; i += 1) {
-    const [hour] = time.split(":").map(Number);
-    const slotTime = `${String(hour + i).padStart(2, "0")}:00`;
-    const bookingRef = ref(db, rootPath(`reservas/${date}/${slotTime}/${service.id}`));
-
-    const isFirst = i === 0;
-    const transaction = await runTransaction(bookingRef, (currentValue) => {
-      if (currentValue) {
-        return;
-      }
-
-      return {
-        date,
-        time: slotTime,
-        serviceId: service.id,
-        serviceName: service.name,
-        price: Number(service.price || 0),
-        paymentLink: service.paymentLink || "",
-        durationMinutes: Number(service.durationMinutes || 60),
-        status: service.paymentLink ? "pendiente_pago" : "confirmado",
-        createdAt: new Date().toISOString(),
-        customer,
-        user: {
-          uid: user.uid,
-          email: user.email || "",
-          displayName: user.displayName || "",
-        },
-        bookingGroup: isFirst ? `${date}-${time}-${service.id}` : `${date}-${time}-${service.id}`,
-        isPrimary: isFirst,
-      };
-    });
-
-    if (!transaction.committed) {
-      return false;
+  const transaction = await runTransaction(bookingRef, (currentValue) => {
+    if (currentValue) {
+      return;
     }
-  }
 
-  return true;
+    return {
+      date,
+      time,
+      serviceId: service.id,
+      serviceName: service.name,
+      price: priceTotal,
+      durationMinutes: Number(durationMinutes || 60),
+      paymentLink: service.paymentLink || "",
+      status: service.paymentLink ? "pendiente_pago" : "confirmado",
+      createdAt: new Date().toISOString(),
+      customer,
+      user: {
+        uid: user.uid,
+        email: user.email || "",
+        displayName: user.displayName || "",
+      },
+      bookingGroup: `${date}-${time}-${service.id}`,
+    };
+  });
+
+  return transaction.committed;
 }
 
 export async function createManualBooking({
@@ -265,48 +268,37 @@ export async function createManualBooking({
   status,
   durationMinutes,
 }) {
-  const duration = durationMinutes || 60;
-  const blocks = Math.floor(duration / 60);
+  const blocks = Math.floor((durationMinutes || 60) / 60);
+  const bookingRef = ref(db, rootPath(`reservas/${date}/${time}/${service.id}`));
+  const priceTotal = Number(service.price || 0) * blocks;
 
-  for (let i = 0; i < blocks; i += 1) {
-    const [hour] = time.split(":").map(Number);
-    const slotTime = `${String(hour + i).padStart(2, "0")}:00`;
-    const bookingRef = ref(db, rootPath(`reservas/${date}/${slotTime}/${service.id}`));
-
-    const isFirst = i === 0;
-    const transaction = await runTransaction(bookingRef, (currentValue) => {
-      if (currentValue) {
-        return;
-      }
-
-      return {
-        date,
-        time: slotTime,
-        serviceId: service.id,
-        serviceName: service.name,
-        price: Number(service.price || 0),
-        paymentLink: service.paymentLink || "",
-        durationMinutes: Number(service.durationMinutes || 60),
-        status: status || (service.paymentLink ? "pendiente_pago" : "confirmado"),
-        source: "panel",
-        createdAt: new Date().toISOString(),
-        customer,
-        user: {
-          uid: adminUser?.uid || "panel-manual",
-          email: adminUser?.email || "",
-          displayName: adminUser?.displayName || "Carga manual",
-        },
-        bookingGroup: `${date}-${time}-${service.id}`,
-        isPrimary: isFirst,
-      };
-    });
-
-    if (!transaction.committed) {
-      return false;
+  const transaction = await runTransaction(bookingRef, (currentValue) => {
+    if (currentValue) {
+      return;
     }
-  }
 
-  return true;
+    return {
+      date,
+      time,
+      serviceId: service.id,
+      serviceName: service.name,
+      price: priceTotal,
+      durationMinutes: Number(durationMinutes || 60),
+      paymentLink: service.paymentLink || "",
+      status: status || (service.paymentLink ? "pendiente_pago" : "confirmado"),
+      source: "panel",
+      createdAt: new Date().toISOString(),
+      customer,
+      user: {
+        uid: adminUser?.uid || "panel-manual",
+        email: adminUser?.email || "",
+        displayName: adminUser?.displayName || "Carga manual",
+      },
+      bookingGroup: `${date}-${time}-${service.id}`,
+    };
+  });
+
+  return transaction.committed;
 }
 
 export async function fetchBookings() {
